@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   AgencyFlow - "operations console"
+   Architectural monochrome, 1px hairlines instead of shadows, compact density,
+   monospace for every piece of metadata, and exactly one warm accent.
+   Deliberately light-only: this is a dense work tool, not a marketing page.
+   =========================================================================== */
+
+@theme {
+  --color-canvas: #fafaf9;
+  --color-panel: #ffffff;
+  --color-ink: #0a0a0a;
+  --color-ink-2: #3f3f46;
+  --color-muted: #71717a;
+  --color-faint: #a1a1aa;
+  --color-line: #e4e4e7;
+  --color-line-2: #d4d4d8;
+
+  /* the one accent - brand mark, active nav, primary action. never a surface */
+  --color-accent: #ff5a1f;
+  --color-accent-soft: #fff1eb;
+
+  /* semantic status */
+  --color-draft: #71717a;
+  --color-scheduled: #2563eb;
+  --color-published: #15803d;
+  --color-failed: #b91c1c;
+  --color-approved: #15803d;
+  --color-changes: #b45309;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --radius-ctl: 7px;
+}
+
+html { color-scheme: light; }
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- primitives ---------------------------------------------------------- */
+
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+}
+
+.lbl {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 13px;
+  border-radius: var(--radius-ctl);
+  border: 1px solid var(--color-ink);
+  background: var(--color-ink);
+  color: #fff;
+  cursor: pointer;
+  transition: 0.12s;
+  white-space: nowrap;
+}
+.btn:hover { background: #262626; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-ghost {
+  background: var(--color-panel);
+  color: var(--color-ink);
+  border-color: var(--color-line-2);
+}
+.btn-ghost:hover { background: #f4f4f5; }
+
+.btn-accent { background: var(--color-accent); border-color: var(--color-accent); }
+.btn-accent:hover { background: #ea4c14; }
+
+.btn-sm { padding: 4px 9px; font-size: 12px; }
+
+input, textarea, select {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--color-ink);
+  background: var(--color-panel);
+  border: 1px solid var(--color-line-2);
+  border-radius: var(--radius-ctl);
+  padding: 8px 10px;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 3px rgb(10 10 10 / 0.06);
+}
+input::placeholder, textarea::placeholder { color: var(--color-faint); }
+
+/* --- status pills -------------------------------------------------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.pill-draft     { color: var(--color-draft); }
+.pill-scheduled { color: var(--color-scheduled); }
+.pill-published { color: var(--color-published); }
+.pill-failed    { color: var(--color-failed); }
+.pill-pending   { color: var(--color-muted); }
+.pill-approved  { color: var(--color-approved); }
+.pill-changes_requested { color: var(--color-changes); }
+
+/* --- the safety gate ----------------------------------------------------- */
+/* A disabled post never publishes. It should be impossible to miss. */
+
+.gate-off {
+  border-left: 3px solid var(--color-failed);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgb(185 28 28 / 0.05) 0 6px,
+    transparent 6px 12px
+  );
+}
