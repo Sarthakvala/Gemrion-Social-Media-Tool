@@ -2,15 +2,39 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'password' | 'magic'>('password');
+  const [state, setState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const router = useRouter();
 
-  async function sendLink(e: React.FormEvent) {
+  async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault();
-    setState('sending');
+    setState('loading');
+    const supabase = createClient();
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      setState('error');
+      setMessage(error.message);
+    } else {
+      const next = new URLSearchParams(window.location.search).get('next') || '/';
+      router.push(next);
+      router.refresh();
+    }
+  }
+
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    setState('loading');
     const supabase = createClient();
 
     const next = new URLSearchParams(window.location.search).get('next') || '/';
@@ -41,7 +65,9 @@ export default function LoginPage() {
           Sign in
         </h1>
         <p className="text-muted mt-1.5 mb-6 text-[13.5px]">
-          We email you a link. No password to remember or lose.
+          {mode === 'password'
+            ? 'Enter your email and password.'
+            : 'We email you a link. No password to remember or lose.'}
         </p>
 
         {state === 'sent' ? (
@@ -57,10 +83,10 @@ export default function LoginPage() {
               Use a different email
             </button>
           </div>
-        ) : (
-          <form onSubmit={sendLink} className="panel p-5">
+        ) : mode === 'password' ? (
+          <form onSubmit={handlePasswordLogin} className="panel p-5">
             <label className="lbl block mb-1.5" htmlFor="email">
-              Work email
+              Email
             </label>
             <input
               id="email"
@@ -71,17 +97,72 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
             />
+
+            <label className="lbl block mb-1.5 mt-3" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+            />
+
             <button
               type="submit"
-              className="btn btn-accent w-full justify-center mt-3"
-              disabled={state === 'sending' || !email.trim()}
+              className="btn btn-accent w-full justify-center mt-4"
+              disabled={state === 'loading' || !email.trim() || !password}
             >
-              {state === 'sending' ? 'Sending…' : 'Email me a link'}
+              {state === 'loading' ? 'Signing in...' : 'Sign in'}
             </button>
 
             {state === 'error' && (
               <p className="text-failed text-[12.5px] mt-3">{message}</p>
             )}
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm w-full justify-center mt-3"
+              onClick={() => { setMode('magic'); setState('idle'); setMessage(''); }}
+            >
+              Use magic link instead
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleMagicLink} className="panel p-5">
+            <label className="lbl block mb-1.5" htmlFor="email-magic">
+              Work email
+            </label>
+            <input
+              id="email-magic"
+              type="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+            />
+            <button
+              type="submit"
+              className="btn btn-accent w-full justify-center mt-3"
+              disabled={state === 'loading' || !email.trim()}
+            >
+              {state === 'loading' ? 'Sending...' : 'Email me a link'}
+            </button>
+
+            {state === 'error' && (
+              <p className="text-failed text-[12.5px] mt-3">{message}</p>
+            )}
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm w-full justify-center mt-3"
+              onClick={() => { setMode('password'); setState('idle'); setMessage(''); }}
+            >
+              Use password instead
+            </button>
           </form>
         )}
 
