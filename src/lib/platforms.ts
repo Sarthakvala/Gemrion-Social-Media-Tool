@@ -7,6 +7,7 @@ export type PlatformConfig = {
   clientId: () => string | undefined;
   clientSecret: () => string | undefined;
   configured: () => boolean;
+  configId?: () => string | undefined;
   pkce?: boolean;
   tiktok?: boolean;
 };
@@ -19,6 +20,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     clientId: () => process.env.META_APP_ID,
     clientSecret: () => process.env.META_APP_SECRET,
     configured: () => !!(process.env.META_APP_ID && process.env.META_APP_SECRET),
+    configId: () => process.env.META_CONFIG_ID,
   },
   IG: {
     name: 'Instagram Business',
@@ -27,6 +29,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     clientId: () => process.env.META_APP_ID,
     clientSecret: () => process.env.META_APP_SECRET,
     configured: () => !!(process.env.META_APP_ID && process.env.META_APP_SECRET),
+    configId: () => process.env.META_CONFIG_ID,
   },
   X: {
     name: 'X (Twitter)',
