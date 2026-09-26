@@ -25,6 +25,7 @@ deploying.
 ## Current State
 | Area | State |
 |---|---|
+| Deploy | Live on Vercel: `main` @ 3132aac (Production) for both Vercel projects wired to this repo (`gemrion-social-media-tool`, `agencyflow`) |
 | Build / tests | Clean build, 87/87 tests |
 | DB migrations | 002 + 003 applied to prod |
 | Logged-in UI | Not browser-verified by Claude (login is against prod Supabase) |
@@ -57,6 +58,11 @@ deploying.
 - Generated posts are `draft` so the publish cron never picks them up.
 
 ## Warnings / Gotchas
+- Deploys come from GitHub pushes to `main` (Vercel git integration). The local branch was
+  `master`; it is now renamed to `main` tracking `origin/main`. Always `git fetch` first: `main`
+  had an OAuth commit (fdf09bb) that was merged in during this deploy.
+- Vercel CLI and the Vercel connector are not authorised for team `gemrion1`; check deploy
+  status with `gh api repos/Sarthakvala/Gemrion-Social-Media-Tool/commits/<sha>/status`.
 - Rotating the Supabase service role key makes saved AI keys unreadable; re-enter them.
 - Next 16: read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - next/og font subsets must include uppercase glyphs (kickers are CSS-uppercased).
