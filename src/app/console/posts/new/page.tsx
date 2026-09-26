@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireAgency, getVisibleClients } from '@/lib/auth';
 import { Shell } from '@/components/Shell';
+import { consoleNav } from '@/lib/nav';
 import { PostForm } from '@/components/PostForm';
 import { EmptyState } from '@/components/ui';
 
@@ -11,11 +12,7 @@ export default async function NewPostPage() {
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/console', label: 'Posts', active: true },
-        { href: '/console/calendar', label: 'Calendar' },
-        { href: '/console/clients', label: 'Clients' },
-      ]}
+      nav={consoleNav('posts')}
     >
       <Link href="/console" className="mono text-muted hover:text-ink">
         ← back to posts

@@ -6,6 +6,8 @@ import { Shell } from '@/components/Shell';
 import { PostEditor } from '@/components/PostEditor';
 import { Comments } from '@/components/Comments';
 import { StatusPill, PlatformTags, formatSlot } from '@/components/ui';
+import { DownloadPostButton } from '@/components/studio/DownloadButtons';
+import { slideUrls, toZipPost } from '@/lib/studio/urls';
 import type { Post, PostComment } from '@/lib/types';
 
 export default async function PortalPostPage({
@@ -33,7 +35,7 @@ export default async function PortalPostPage({
     .eq('post_id', id)
     .order('created_at');
 
-  const slides = p.slides?.length ? p.slides : p.image_url ? [p.image_url] : [];
+  const slides = slideUrls(p);
 
   return (
     <Shell
@@ -94,6 +96,11 @@ export default async function PortalPostPage({
               controls
               className="w-full rounded-lg border border-line mt-2"
             />
+          )}
+          {slides.length > 0 && (
+            <div className="mt-3">
+              <DownloadPostButton post={toZipPost(p)} />
+            </div>
           )}
           <p className="mono text-faint mt-3 leading-relaxed">
             Creative and scheduling are set by your agency. Ask in the notes if

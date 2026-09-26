@@ -1,4 +1,5 @@
 import type { Post, Platform } from '@/lib/types';
+import { slideUrls } from '@/lib/studio/urls';
 
 export function StatusPill({ value }: { value: string }) {
   return <span className={`pill pill-${value}`}>{value.replace('_', ' ')}</span>;
@@ -22,10 +23,11 @@ export function PlatformTags({ platforms }: { platforms: Platform[] }) {
 
 /** Post creative: cover image, carousel count, or reel badge. */
 export function Thumb({ post, size = 92 }: { post: Post; size?: number }) {
-  const slideCount = post.slides?.length || (post.image_url ? 1 : 0);
+  const urls = slideUrls(post);
+  const slideCount = urls.length;
   const isVideo = !!post.video_url;
 
-  if (!post.image_url) {
+  if (!urls[0]) {
     return (
       <div
         style={{ width: size, height: size }}
@@ -46,7 +48,7 @@ export function Thumb({ post, size = 92 }: { post: Post; size?: number }) {
       {/* plain img: these are Supabase Storage / remote URLs */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={post.image_url}
+        src={urls[0]}
         alt=""
         className="w-full h-full object-cover"
         loading="lazy"

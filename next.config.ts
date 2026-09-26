@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // brand kit form carries a logo upload (capped at 1 MB in the action)
+  experimental: {
+    serverActions: { bodySizeLimit: '2mb' },
+  },
 };
 
 export default nextConfig;

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { savePost, deletePost } from '@/app/console/posts/actions';
-import { AiPromptPanel } from '@/components/AiPromptPanel';
 import { PLATFORMS, PLATFORM_NAMES, type Post, type Client } from '@/lib/types';
 
 /** Full agency editor. Plain form + server action, so it works without client JS. */
@@ -136,12 +135,6 @@ export function PostForm({
           )}
         </div>
       </div>
-
-      <AiPromptPanel
-        title={post?.title ?? ''}
-        copy={post?.copy ?? ''}
-        clientName={clients.find((c) => c.id === post?.client_id)?.name ?? clients[0]?.name ?? 'the brand'}
-      />
     </form>
   );
 }

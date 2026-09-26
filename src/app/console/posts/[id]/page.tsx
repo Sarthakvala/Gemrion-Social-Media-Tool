@@ -3,10 +3,20 @@ import { notFound } from 'next/navigation';
 import { requireAgency, getVisibleClients } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/Shell';
+import { consoleNav } from '@/lib/nav';
 import { PostForm } from '@/components/PostForm';
 import { PublishButton } from '@/components/PublishButton';
 import { StatusPill } from '@/components/ui';
+import { SlidePreview } from '@/components/studio/SlidePreview';
+import { CreativeEditor } from '@/components/studio/CreativeEditor';
+import { RegenerateForm } from '@/components/studio/RegenerateForm';
+import { DownloadPostButton } from '@/components/studio/DownloadButtons';
+import { saveAsExample } from '@/app/console/studio/actions';
+import { slideUrls, toZipPost } from '@/lib/studio/urls';
 import type { Post, PostComment } from '@/lib/types';
+
+// AI rewrite runs as a server action on this page
+export const maxDuration = 120;
 
 export default async function EditPostPage({
   params,
@@ -38,11 +48,7 @@ export default async function EditPostPage({
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/console', label: 'Posts', active: true },
-        { href: '/console/calendar', label: 'Calendar' },
-        { href: '/console/clients', label: 'Clients' },
-      ]}
+      nav={consoleNav('posts')}
     >
       <Link href="/console" className="mono text-muted hover:text-ink">
         ← back to posts
@@ -67,7 +73,33 @@ export default async function EditPostPage({
         </div>
       )}
 
-      <PostForm post={p} clients={clients} />
+      <div className="panel p-4 mb-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+          <span className="lbl">
+            Preview{p.pillar ? ` · ${p.pillar}` : ''} · {p.format} {p.aspect}
+          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <DownloadPostButton post={toZipPost(p)} className="btn btn-accent" />
+            <form action={saveAsExample}>
+              <input type="hidden" name="id" value={p.id} />
+              <button type="submit" className="btn btn-ghost" title="Adds this caption to the brand's examples so future posts follow it">
+                Save as brand example
+              </button>
+            </form>
+          </div>
+        </div>
+        <SlidePreview urls={slideUrls(p)} aspect={p.aspect} />
+        {p.hook && <p className="text-[13.5px] mt-3"><span className="lbl mr-2">Hook</span>{p.hook}</p>}
+        <div className="mt-4 pt-3.5 border-t border-line">
+          <span className="lbl block mb-2">Not right? Rewrite it</span>
+          <RegenerateForm postId={p.id} />
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4 items-start mb-4">
+        <CreativeEditor key={p.updated_at} post={p} />
+        <PostForm post={p} clients={clients} />
+      </div>
 
       {p.status !== 'published' && p.enabled && (
         <div className="panel p-4 mt-4">

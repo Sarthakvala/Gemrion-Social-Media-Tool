@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireAgency } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/Shell';
+import { consoleNav } from '@/lib/nav';
 import { StatusPill, PlatformTags, Thumb, formatSlot, EmptyState } from '@/components/ui';
 import type { Post, Client } from '@/lib/types';
 
@@ -40,11 +41,7 @@ export default async function ConsolePage({
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/console', label: 'Posts', active: true },
-        { href: '/console/calendar', label: 'Calendar' },
-        { href: '/console/clients', label: 'Clients' },
-      ]}
+      nav={consoleNav('posts')}
     >
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>

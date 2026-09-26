@@ -48,6 +48,13 @@ export interface Post {
   publish_error: string | null;
   created_at: string;
   updated_at: string;
+  pillar: string;
+  hook: string;
+  format: 'single' | 'carousel' | 'story';
+  aspect: '1:1' | '4:5' | '9:16';
+  slides_content: import('@/lib/studio/types').Slide[];
+  platform_captions: Partial<Record<Platform, string>>;
+  visual_brief: string;
 }
 
 export interface PostComment {

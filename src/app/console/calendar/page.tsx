@@ -1,6 +1,7 @@
 import { requireAgency } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/Shell';
+import { consoleNav } from '@/lib/nav';
 import { Calendar, monthFromParam } from '@/components/Calendar';
 import type { Post, Client } from '@/lib/types';
 
@@ -21,11 +22,7 @@ export default async function ConsoleCalendar({
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/console', label: 'Posts' },
-        { href: '/console/calendar', label: 'Calendar', active: true },
-        { href: '/console/clients', label: 'Clients' },
-      ]}
+      nav={consoleNav('calendar')}
     >
       <Calendar
         posts={(data ?? []) as PostRow[]}

@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { requireAgency } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Shell } from '@/components/Shell';
+import { consoleNav } from '@/lib/nav';
 import { EmptyState } from '@/components/ui';
 import { PLATFORMS, PLATFORM_NAMES, type Client } from '@/lib/types';
 import {
@@ -30,17 +32,13 @@ export default async function ClientsPage() {
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/console', label: 'Posts' },
-        { href: '/console/calendar', label: 'Calendar' },
-        { href: '/console/clients', label: 'Clients', active: true },
-      ]}
+      nav={consoleNav('clients')}
     >
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Clients</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">Brands</h1>
           <p className="text-muted text-[13.5px] mt-1">
-            Each client is a workspace with its own connected accounts and portal users.
+            Each brand has its own kit (voice, pillars, look), portal users and connected accounts.
           </p>
         </div>
       </div>
@@ -93,6 +91,12 @@ export default async function ClientsPage() {
                   <span className="mono text-faint ml-auto">
                     {postCount.get(c.id) ?? 0} posts
                   </span>
+                  <Link href={`/console/clients/${c.id}/brand`} className="btn btn-sm">
+                    Brand kit
+                  </Link>
+                  <Link href={`/console/studio?client=${c.id}`} className="btn btn-ghost btn-sm">
+                    Studio
+                  </Link>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4 mt-3.5">

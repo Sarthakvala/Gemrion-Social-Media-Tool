@@ -113,6 +113,12 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px rgb(10 10 10 / 0.06);
 }
 input::placeholder, textarea::placeholder { color: var(--color-faint); }
+input[type='checkbox'], input[type='radio'] {
+  width: auto;
+  padding: 0;
+  accent-color: var(--color-ink);
+}
+input[type='color'] { padding: 2px; height: 36px; cursor: pointer; }
 
 /* --- status pills -------------------------------------------------------- */
 

@@ -1,12 +1,17 @@
 # Gemrion Social Media Tool
 
-A multi-client social media management platform built with **Next.js 16**, **React 19**, **Supabase**, and **Tailwind 4**. Designed for agencies that manage social media for multiple clients.
+A brand-trained social content studio for agencies, built with **Next.js 16**, **React 19**, **Supabase**, **Claude** and **Tailwind 4**. Train it on a brand once, then generate a month of on-brand posts (calendar, captions, hashtags, slides) and download everything ready to post.
 
 ## What it does
 
+- **Settings** - Paste an Anthropic or OpenAI API key, pick the provider and model, test the connection. Keys are AES-256-GCM encrypted in a table no browser session can read.
+- **AI brand kit drafting** - Give a website and/or notes; the app reads the site (public addresses only) and drafts voice (4 dimensions + archetype + we-are/we-are-not), audience, pillars, rules, hashtags, palette and fonts for review.
+- **Brand kits** - Per brand: voice, audience, pillars and mix, always/never rules, banned words, CTA style, hashtags, palette, fonts, logo, plus approved example posts. Every generation follows the kit.
+- **Studio** - Plan a month, or generate a campaign from a brief over any date range. The AI (Claude or GPT) plans the posts, then writes each one: hook, per-platform captions, hashtags, visual brief and slide copy. Posts land as drafts; rewrite any single post with a note.
+- **Rendered slides** - Slides are drawn on demand from the brand kit (1080px, 4:5 / 1:1 / 9:16) via `/api/render`. Nothing is stored, so Supabase storage stays tiny.
+- **Downloads** - One ZIP per post (slide PNGs + captions.txt per platform) or per month (+ calendar.csv) for staff to post by hand.
 - **Agency Console** - Plan, schedule, and publish social media posts across Instagram, Facebook, X (Twitter), LinkedIn, and TikTok for multiple clients from one dashboard.
 - **Client Portal** - Clients log in with a magic link, see their post calendar, edit copy/captions, approve posts, and leave notes - all scoped to their workspace only.
-- **AI Generation** - Built-in AI prompt panel generates Moonli-Navy style image prompts (4:5 ratio) and founder-voice captions via Vercel AI Gateway.
 - **OAuth Connect** - Real OAuth 2.0 flows for each platform. When credentials aren't configured, falls back to demo mode for planning.
 - **Scheduled Publishing** - Vercel Cron checks every 10 minutes for due posts and publishes them automatically.
 - **Safety Gate** - Disabled posts never publish, enforced server-side.
@@ -16,21 +21,24 @@ A multi-client social media management platform built with **Next.js 16**, **Rea
 ```
 src/
   app/
-    console/        # Agency dashboard (posts, calendar, clients)
+    console/        # Agency app: studio, posts, calendar, brands (+ brand kit), settings
     portal/         # Client-facing portal (view, edit, approve)
     api/
-      ai/generate   # AI caption/prompt generation
+      render        # Slide PNG renderer (brand kit + post)
       oauth/        # OAuth start/callback/disconnect per platform
       publish       # Manual publish endpoint
       cron/publish  # Vercel Cron auto-publisher
     auth/           # Magic link callback + sign out
     login/          # Sign-in page
-  components/       # Shared UI components
+  components/       # Shared UI components (studio/ = generator, editors, downloads)
   lib/
     supabase/       # Server, admin, and browser Supabase clients
     auth.ts         # Role-based auth helpers
     types.ts        # TypeScript types
     platforms.ts    # OAuth platform configs (server-only)
+    studio/         # Prompts, schemas, normalisation, slide renderer, ZIP export
+    ai/             # Key encryption, settings, Anthropic/OpenAI providers
+    brand/          # Website reader (SSRF-guarded) + AI brand-kit drafting
 ```
 
 ## Security Model
@@ -40,9 +48,10 @@ Multi-tenant security is enforced at the database level, not in application code
 | Layer | What it controls | Mechanism |
 |---|---|---|
 | **RLS (Row Level Security)** | Which rows a user can see | `is_agency()` and `can_access_client()` functions |
-| **Column GRANTs** | Which fields a client can write | Only `caption`, `copy`, `hashtags`, `approval` |
+| **Column GRANTs** | Which fields a client can write | Only `caption`, `copy`, `hashtags`, `approval`, `platform_captions` |
 | **Service-role key** | Agency writes bypass RLS | Server-side only, behind `requireAgency()` |
 | **Zero grants on social_accounts** | OAuth tokens are unreachable by clients | No SELECT/UPDATE for authenticated role |
+| **Zero grants on ai_settings** | AI keys are unreachable from any browser session | Keys also AES-256-GCM encrypted at rest |
 
 This was verified with 11 automated tests using real JWTs (see `supabase/schema.sql` for the full policy set).
 
@@ -70,7 +79,7 @@ npm install
 ### 2. Set up Supabase
 
 1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Run `supabase/schema.sql` in the SQL Editor to create tables, RLS policies, and grants
+2. Run `supabase/schema.sql`, `supabase/002_brand_studio.sql` and `supabase/003_ai_settings.sql`, in order, in the SQL Editor
 3. (Optional) Run `supabase/migrate_legacy.sql` if migrating from the legacy app
 
 ### 3. Configure environment
@@ -86,8 +95,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 # Site URL (required for OAuth callbacks)
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-# AI Generation (optional - needs Vercel billing)
-AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
+# AI keys: normally entered in the app under Settings (stored encrypted).
+# These env vars are optional fallbacks.
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
 
 # Vercel Cron (required for scheduled publishing)
 CRON_SECRET=your-random-secret
@@ -103,15 +114,20 @@ TIKTOK_CLIENT_KEY=
 TIKTOK_CLIENT_SECRET=
 ```
 
-### 4. Run locally
+### 4. Add an AI key
+
+Sign in as agency, open **Settings**, paste an Anthropic and/or OpenAI API key and press **Test connection**.
+
+### 5. Run locally
 
 ```bash
 npm run dev
+npm test   # unit tests (vitest)
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 5. First login
+### 6. First login
 
 1. Sign in with your email (magic link via Supabase)
 2. Promote yourself to agency role in the SQL Editor:
@@ -133,7 +149,6 @@ vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
 vercel env add SUPABASE_SERVICE_ROLE_KEY
 vercel env add NEXT_PUBLIC_SITE_URL
 vercel env add CRON_SECRET
-vercel env add AI_GATEWAY_API_KEY
 vercel deploy --prod
 ```
 
