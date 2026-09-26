@@ -27,22 +27,13 @@ export async function GET(
   }
 
   if (!P.configured()) {
-    const admin = createAdminClient();
-    const { error } = await admin.from('social_accounts').upsert(
-      {
-        client_id: clientId,
-        platform,
-        connected: true,
-        is_real: false,
-        handle: 'demo',
-      },
-      { onConflict: 'client_id,platform' }
-    );
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
     return NextResponse.redirect(
-      new URL('/console/clients?connected=demo', request.url)
+      new URL(
+        `/console/clients?error=${encodeURIComponent(
+          `${P.name} OAuth is not configured. Ask the admin to set the platform credentials on Vercel.`
+        )}`,
+        request.url
+      )
     );
   }
 
@@ -51,9 +42,15 @@ export async function GET(
     response_type: 'code',
     client_id: P.clientId()!,
     redirect_uri: redirectUri(platform),
-    scope: P.scope,
     state,
   };
+
+  const configId = P.configId?.();
+  if (configId) {
+    oauthParams.config_id = configId;
+  } else {
+    oauthParams.scope = P.scope;
+  }
 
   let verifier = '';
   if (P.tiktok) {
