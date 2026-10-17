@@ -1,6 +1,8 @@
 # Gemrion Social Media Tool
 
-A brand-trained social content studio for agencies, built with **Next.js 16**, **React 19**, **Supabase**, **Claude** and **Tailwind 4**. Train it on a brand once, then generate a month of on-brand posts (calendar, captions, hashtags, slides) and download everything ready to post.
+An internal agency platform for running several client brands end to end, built with **Next.js 16**, **React 19**, **Supabase**, **Claude** and **Tailwind 4**. Train it on a brand once, then plan and produce on-brand social content, carousels, reels and (in later phases) Meta ads and SEO/AEO/GEO work, with client approvals, reporting, and every AI run tracked and costed.
+
+**Phases:** 1 Foundation (jobs, assets, approvals, playbooks) - done. 2 Video & reels, 3 Meta ads, 4 SEO/AEO/GEO, 5 Reporting PDFs, 6 Automation. The console already has a section for each; planned ones say what they need to switch on.
 
 ## What it does
 
@@ -10,6 +12,11 @@ A brand-trained social content studio for agencies, built with **Next.js 16**, *
 - **Studio** - Plan a month, or generate a campaign from a brief over any date range. The AI (Claude or GPT) plans the posts, then writes each one: hook, per-platform captions, hashtags, visual brief and slide copy. Posts land as drafts; rewrite any single post with a note.
 - **Rendered slides** - Slides are drawn on demand from the brand kit (1080px, 4:5 / 1:1 / 9:16) via `/api/render`. Nothing is stored, so Supabase storage stays tiny.
 - **Downloads** - One ZIP per post (slide PNGs + captions.txt per platform) or per month (+ calendar.csv) for staff to post by hand.
+- **Playbooks** - Your Claude Code skills ported into versioned prompts that run on a brand kit: reel hooks (viral-hook-writer), carousel builder, caption + hashtags. Results are copy-ready and kept per run.
+- **Jobs & spend** - Every AI run and worker task is a job with tokens and cost; this month's spend per brand; retry/cancel; worker test.
+- **Assets** - Private, versioned file library per brand (images, slides, videos, reels, documents) with direct-to-storage uploads up to 500 MB, approval and notes. Clients review them under **Files** in the portal.
+- **Reports** - This month per brand: posts, published, approvals, files, AI spend.
+- **Local worker** - A Node 24 Docker service on the agency machine that pulls long jobs (video renders in phase 2) from Supabase; nothing needs to reach the machine from outside. See `worker/README.md`.
 - **Agency Console** - Plan, schedule, and publish social media posts across Instagram, Facebook, X (Twitter), LinkedIn, and TikTok for multiple clients from one dashboard.
 - **Client Portal** - Clients log in with a magic link, see their post calendar, edit copy/captions, approve posts, and leave notes - all scoped to their workspace only.
 - **OAuth Connect** - Real OAuth 2.0 flows for each platform. When credentials aren't configured, falls back to demo mode for planning.
@@ -21,7 +28,8 @@ A brand-trained social content studio for agencies, built with **Next.js 16**, *
 ```
 src/
   app/
-    console/        # Agency app: studio, posts, calendar, brands (+ brand kit), settings
+    console/        # Agency app (grouped sidebar): studio, playbooks, video, posts, calendar,
+                    #   ads, seo, assets, brands (+ brand kit), reports, jobs, settings
     portal/         # Client-facing portal (view, edit, approve)
     api/
       render        # Slide PNG renderer (brand kit + post)
@@ -39,6 +47,12 @@ src/
     studio/         # Prompts, schemas, normalisation, slide renderer, ZIP export
     ai/             # Key encryption, settings, Anthropic/OpenAI providers
     brand/          # Website reader (SSRF-guarded) + AI brand-kit drafting
+    jobs/           # Job repository, trackJob() metering, state rules
+    assets/         # Storage paths, signed URLs, version history
+    playbooks/      # Ported skills: field spec, prompt, schema, normalize, toText
+    reports/        # Monthly per-brand aggregation
+worker/             # Local Docker pull worker (claim_job, heartbeat, retries)
+scripts/            # code-index.mjs -> docs/CODE_INDEX.md
 ```
 
 ## Security Model
@@ -52,6 +66,9 @@ Multi-tenant security is enforced at the database level, not in application code
 | **Service-role key** | Agency writes bypass RLS | Server-side only, behind `requireAgency()` |
 | **Zero grants on social_accounts** | OAuth tokens are unreachable by clients | No SELECT/UPDATE for authenticated role |
 | **Zero grants on ai_settings** | AI keys are unreachable from any browser session | Keys also AES-256-GCM encrypted at rest |
+| **Zero grants on jobs** | Job inputs, outputs and costs are agency-only | `claim_job()` / `spend_by_brand()` executable by service_role only |
+| **Assets: column grant + trigger** | Clients may change only an asset's approval | Approver stamped by trigger; superseded versions locked |
+| **Private `assets` bucket** | No direct file access | 1-hour signed URLs, only for rows the caller may already see |
 
 This was verified with 11 automated tests using real JWTs (see `supabase/schema.sql` for the full policy set).
 
@@ -64,7 +81,8 @@ This was verified with 11 automated tests using real JWTs (see `supabase/schema.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24+ (the worker runs TypeScript directly; the web app needs 20+)
+- Docker Desktop (only for the local worker)
 - A Supabase project
 - (Optional) Platform OAuth apps for real publishing
 
@@ -79,7 +97,7 @@ npm install
 ### 2. Set up Supabase
 
 1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Run `supabase/schema.sql`, `supabase/002_brand_studio.sql` and `supabase/003_ai_settings.sql`, in order, in the SQL Editor
+2. Run `supabase/schema.sql`, then the numbered migrations in order (`002_brand_studio.sql` ... `007_jobs_assets_hardening.sql`) in the SQL Editor
 3. (Optional) Run `supabase/migrate_legacy.sql` if migrating from the legacy app
 
 ### 3. Configure environment
@@ -122,12 +140,23 @@ Sign in as agency, open **Settings**, paste an Anthropic and/or OpenAI API key a
 
 ```bash
 npm run dev
-npm test   # unit tests (vitest)
+npm test              # unit tests (vitest, app + worker)
+npm run index:code    # regenerate docs/CODE_INDEX.md
 ```
+
+### 6. Local worker (optional until phase 2)
+
+Copy `worker/env.template` to `worker/.env`, then:
+
+```bash
+docker compose -f worker/docker-compose.yml up -d --build
+```
+
+In the console, open **Jobs & spend** and press **Test the worker**.
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 6. First login
+### 7. First login
 
 1. Sign in with your email (magic link via Supabase)
 2. Promote yourself to agency role in the SQL Editor:
@@ -185,7 +214,7 @@ Without platform credentials, the connect buttons create **demo connections** th
 - **Client management** - create clients, invite portal users, connect social accounts
 - **Post editor** - full form with date/time, platform selection, copy, creative URL, safety gate
 - **Publish button** - publish immediately or let the cron handle it
-- **AI panel** - generate image prompts and captions with one click
+- **Studio, Playbooks, Assets, Jobs, Reports** - see "What it does" above
 
 ### Client Portal (`/portal`)
 
@@ -194,6 +223,7 @@ Without platform credentials, the connect buttons create **demo connections** th
 - **In-place editing** of caption, copy, and hashtags
 - **Approve / Request changes** workflow
 - **Notes** back to the agency
+- **Files** - review creatives and videos, approve or ask for changes
 
 ### Publishing
 
@@ -209,7 +239,8 @@ Without platform credentials, the connect buttons create **demo connections** th
 - **UI**: React 19, Tailwind CSS 4
 - **Database**: Supabase (PostgreSQL + Row Level Security)
 - **Auth**: Supabase Auth (magic links)
-- **AI**: Vercel AI SDK v7 + AI Gateway
+- **AI**: Official Anthropic and OpenAI SDKs (structured outputs), keys entered in Settings
+- **Worker**: Node 24 in Docker, polling Supabase (`claim_job`, SKIP LOCKED)
 - **Hosting**: Vercel
 - **Design**: Operations console aesthetic (Geist/Geist Mono, monochrome + orange accent)
 

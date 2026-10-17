@@ -55,7 +55,7 @@ export default async function StudioPage({
   const briefReady = !!(brandRow?.voice || brandRow?.audience || exampleCount);
 
   return (
-    <Shell profile={profile} nav={consoleNav('studio')}>
+    <Shell profile={profile} groups={consoleNav('studio')}>
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">Studio</h1>

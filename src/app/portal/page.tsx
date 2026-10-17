@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { portalNav } from '@/lib/nav';
 import { requireUser } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/Shell';
@@ -25,10 +26,7 @@ export default async function PortalPage() {
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/portal', label: 'Your posts', active: true },
-        { href: '/portal/calendar', label: 'Calendar' },
-      ]}
+      nav={portalNav('posts')}
     >
       <h1 className="text-[22px] font-semibold tracking-tight">Your posts</h1>
       <p className="text-muted text-[13.5px] mt-1 mb-5">

@@ -8,6 +8,7 @@ import { PILLAR_ROWS, type Pillar } from '@/lib/studio/types';
 import { loadBrand } from '@/lib/studio/data';
 import { activeModel } from '@/lib/studio/generate';
 import { AiError } from '@/lib/ai/providers';
+import { trackJob } from '@/lib/jobs/track';
 import { readSite, SiteError, type SiteSnapshot } from '@/lib/brand/site';
 import { BRAND_SYSTEM, BrandDraftSchema, buildBrandRequest, draftToProfile } from '@/lib/brand/draft';
 
@@ -18,7 +19,7 @@ export interface DraftResult {
 }
 
 export async function draftBrandWithAi(_prev: DraftResult | null, formData: FormData): Promise<DraftResult> {
-  await requireAgency();
+  const staff = await requireAgency();
   const clientId = text(formData, 'client_id', 64);
   const url = text(formData, 'url', 500);
   const notes = text(formData, 'notes', 6000);
@@ -32,12 +33,17 @@ export async function draftBrandWithAi(_prev: DraftResult | null, formData: Form
     let site: SiteSnapshot | undefined;
     if (url) site = await readSite(url);
 
-    const model = await activeModel();
-    const draft = await model.structured(BRAND_SYSTEM, buildBrandRequest({ brandName: brand.name, notes, site }), BrandDraftSchema, 'high');
-    const profile = draftToProfile(draft, brand.profile);
-
-    const { error } = await admin.from('brand_profiles').upsert(profile, { onConflict: 'client_id' });
-    if (error) throw new Error(error.message);
+    const { model, draft } = await trackJob(
+      { kind: 'playbook', playbook: 'brand.draft', clientId, createdBy: staff.id, input: { url, notes_chars: notes.length } },
+      async (onUsage) => {
+        const model = await activeModel(onUsage);
+        const draft = await model.structured(BRAND_SYSTEM, buildBrandRequest({ brandName: brand.name, notes, site }), BrandDraftSchema, 'high');
+        const { error } = await admin.from('brand_profiles').upsert(draftToProfile(draft, brand.profile), { onConflict: 'client_id' });
+        if (error) throw new Error(`Could not save the brand kit: ${error.message}`);
+        return { model, draft };
+      },
+      (r) => ({ to_confirm: r.draft.to_confirm.length })
+    );
 
     revalidatePath(`/console/clients/${clientId}/brand`);
     return {

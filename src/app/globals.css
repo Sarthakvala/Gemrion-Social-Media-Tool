@@ -141,6 +141,11 @@ input[type='color'] { padding: 2px; height: 36px; cursor: pointer; }
 .pill-pending   { color: var(--color-muted); }
 .pill-approved  { color: var(--color-approved); }
 .pill-changes_requested { color: var(--color-changes); }
+/* job states */
+.pill-queued    { color: var(--color-muted); }
+.pill-running   { color: var(--color-scheduled); }
+.pill-succeeded { color: var(--color-published); }
+.pill-canceled  { color: var(--color-faint); }
 
 /* --- the safety gate ----------------------------------------------------- */
 /* A disabled post never publishes. It should be impossible to miss. */

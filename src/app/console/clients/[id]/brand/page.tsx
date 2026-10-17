@@ -43,7 +43,7 @@ export default async function BrandKitPage({
   const pillarRows = Array.from({ length: PILLAR_ROWS }, (_, i) => b.pillars[i] ?? { name: '', share: 0, topics: '' });
 
   return (
-    <Shell profile={profile} nav={consoleNav('clients')}>
+    <Shell profile={profile} groups={consoleNav('clients')}>
       <Link href="/console/clients" className="mono text-muted hover:text-ink">← all brands</Link>
       <div className="flex items-end justify-between gap-4 mt-3 mb-5 flex-wrap">
         <div>

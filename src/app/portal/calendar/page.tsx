@@ -1,4 +1,5 @@
 import { requireUser } from '@/lib/auth';
+import { portalNav } from '@/lib/nav';
 import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/Shell';
 import { Calendar, monthFromParam } from '@/components/Calendar';
@@ -21,10 +22,7 @@ export default async function PortalCalendar({
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/portal', label: 'Your posts' },
-        { href: '/portal/calendar', label: 'Calendar', active: true },
-      ]}
+      nav={portalNav('calendar')}
     >
       <Calendar
         posts={(data ?? []) as PostRow[]}

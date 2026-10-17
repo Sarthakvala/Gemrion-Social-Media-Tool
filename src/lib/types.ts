@@ -77,3 +77,34 @@ export const CLIENT_EDITABLE_FIELDS = [
   'approval',
 ] as const;
 export type ClientEditableField = (typeof CLIENT_EDITABLE_FIELDS)[number];
+
+export interface Asset {
+  id: string;
+  client_id: string;
+  job_id: string | null;
+  post_id: string | null;
+  parent_id: string | null;
+  version: number;
+  kind: import('@/lib/assets/paths').AssetKind;
+  title: string;
+  storage_path: string;
+  mime: string;
+  bytes: number;
+  width: number | null;
+  height: number | null;
+  duration_ms: number | null;
+  approval: Approval;
+  approved_by: string | null;
+  approved_at: string | null;
+  meta: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssetComment {
+  id: string;
+  asset_id: string;
+  user_id: string | null;
+  body: string;
+  created_at: string;
+}

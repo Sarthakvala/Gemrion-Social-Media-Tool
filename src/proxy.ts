@@ -59,7 +59,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // everything except static assets, images and the cron endpoint
-    '/((?!_next/static|_next/image|favicon.ico|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4)$).*)',
+    // everything except static assets, images, the cron endpoint and the
+    // crawler-facing metadata routes (share image, robots, sitemap)
+    '/((?!_next/static|_next/image|favicon.ico|api/cron|opengraph-image|twitter-image|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4)$).*)',
   ],
 };

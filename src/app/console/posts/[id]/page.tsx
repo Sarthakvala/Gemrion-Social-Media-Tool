@@ -48,7 +48,7 @@ export default async function EditPostPage({
   return (
     <Shell
       profile={profile}
-      nav={consoleNav('posts')}
+      groups={consoleNav('posts')}
     >
       <Link href="/console" className="mono text-muted hover:text-ink">
         ← back to posts

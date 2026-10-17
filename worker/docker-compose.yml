@@ -1,0 +1,21 @@
+# Local job worker. From the repo root:
+#   docker compose -f worker/docker-compose.yml up -d --build
+#   docker compose -f worker/docker-compose.yml logs -f
+services:
+  worker:
+    build:
+      context: ..
+      dockerfile: worker/Dockerfile
+    env_file:
+      - path: .env
+        required: false # lets `build` run before worker/.env exists; main.ts names any missing variable
+    restart: unless-stopped
+    stop_grace_period: 2m # lets a running job finish before Docker kills it
+    # 2 of 8 cores = the 25% CPU budget for background work on this machine
+    cpus: 2
+    mem_limit: 4g
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

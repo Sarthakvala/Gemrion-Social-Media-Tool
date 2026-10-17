@@ -11,6 +11,7 @@ import { addDays, contentToPostRow } from '@/lib/studio/normalize';
 import { activeModel, planPosts, rewritePost, writePosts } from '@/lib/studio/generate';
 import { AiError } from '@/lib/ai/providers';
 import { SlideSchema } from '@/lib/studio/schema';
+import { trackJob } from '@/lib/jobs/track';
 
 export interface ActionResult {
   ok: boolean;
@@ -49,7 +50,7 @@ function windowFrom(formData: FormData): { start: string; end: string } | string
 }
 
 export async function generatePosts(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  await requireAgency();
+  const profile = await requireAgency();
 
   const mode = formData.get('mode') === 'brief' ? 'brief' : 'month';
   const clientId = String(formData.get('client_id') || '');
@@ -75,28 +76,34 @@ export async function generatePosts(_prev: ActionResult | null, formData: FormDa
       .gte('scheduled_at', `${window.start}T00:00:00Z`)
       .lte('scheduled_at', `${window.end}T23:59:59Z`);
 
-    const model = await activeModel();
     const system = buildBrandSystemPrompt(brand.name, brand.profile, brand.examples);
-    const plan = await planPosts(model, system, {
-      ...window,
-      count,
-      platforms,
-      brief,
-      mode,
-      existingTitles: (existing ?? []).map((r) => r.title as string).filter(Boolean),
-    });
-    const written = await writePosts(model, system, plan, platforms, brief);
-
-    const rows = written.map(({ plan: slot, content }) => ({
-      ...contentToPostRow(content, slot, { clientId, timeZone: brand.profile.timezone, platforms }),
-      status: 'draft',
-      approval: 'pending',
-      enabled: true,
-    }));
-    if (!rows.length) return { ok: false, message: 'No posts came back. Try again.' };
-
-    const { error } = await admin.from('posts').insert(rows);
-    if (error) throw new Error(error.message);
+    // the insert runs inside the tracked task, so a failed save is recorded as a failed job
+    const { model, rows } = await trackJob(
+      { kind: 'playbook', playbook: `studio.${mode}`, clientId, createdBy: profile.id, input: { ...window, count, platforms, brief } },
+      async (onUsage) => {
+        const model = await activeModel(onUsage);
+        const plan = await planPosts(model, system, {
+          ...window,
+          count,
+          platforms,
+          brief,
+          mode,
+          existingTitles: (existing ?? []).map((r) => r.title as string).filter(Boolean),
+        });
+        const written = await writePosts(model, system, plan, platforms, brief);
+        const rows = written.map(({ plan: slot, content }) => ({
+          ...contentToPostRow(content, slot, { clientId, timeZone: brand.profile.timezone, platforms }),
+          status: 'draft',
+          approval: 'pending',
+          enabled: true,
+        }));
+        if (!rows.length) throw new AiError('No posts came back. Try again.');
+        const { error } = await admin.from('posts').insert(rows);
+        if (error) throw new Error(`Could not save the posts: ${error.message}`);
+        return { model, rows };
+      },
+      (r) => ({ posts: r.rows.length, model: r.model.label })
+    );
 
     revalidatePath('/console/studio');
     revalidatePath('/console');
@@ -111,7 +118,7 @@ export async function generatePosts(_prev: ActionResult | null, formData: FormDa
 }
 
 export async function regeneratePost(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  await requireAgency();
+  const profile = await requireAgency();
   const id = String(formData.get('id') || '');
   const note = String(formData.get('note') || '').slice(0, 1000);
 
@@ -124,38 +131,43 @@ export async function regeneratePost(_prev: ActionResult | null, formData: FormD
     if (!brand) return { ok: false, message: 'Brand not found.' };
 
     const platforms = (post.platforms as Platform[]).length ? (post.platforms as Platform[]) : (['IG', 'LI'] as Platform[]);
-    const model = await activeModel();
     const system = buildBrandSystemPrompt(brand.name, brand.profile, brand.examples);
-    const content = await rewritePost(
-      model,
-      system,
-      { title: post.title, hook: post.hook, caption: post.copy || post.caption, pillar: post.pillar, format: post.format },
-      note,
-      platforms
-    );
-
     const when = post.scheduled_at ? new Date(post.scheduled_at).toISOString() : new Date().toISOString();
-    const row = contentToPostRow(
-      content,
-      { date: when.slice(0, 10), time: when.slice(11, 16), pillar: post.pillar, format: post.format, aspect: post.aspect },
-      { clientId: post.client_id, timeZone: 'UTC', platforms }
+    const model = await trackJob(
+      { kind: 'playbook', playbook: 'studio.rewrite', clientId: post.client_id, createdBy: profile.id, input: { post_id: id, note } },
+      async (onUsage) => {
+        const model = await activeModel(onUsage);
+        const content = await rewritePost(
+          model,
+          system,
+          { title: post.title, hook: post.hook, caption: post.copy || post.caption, pillar: post.pillar, format: post.format },
+          note,
+          platforms
+        );
+        const row = contentToPostRow(
+          content,
+          { date: when.slice(0, 10), time: when.slice(11, 16), pillar: post.pillar, format: post.format, aspect: post.aspect },
+          { clientId: post.client_id, timeZone: 'UTC', platforms }
+        );
+        const { error } = await admin
+          .from('posts')
+          .update({
+            title: row.title,
+            hook: row.hook,
+            copy: row.copy,
+            caption: row.caption,
+            hashtags: row.hashtags,
+            platform_captions: row.platform_captions,
+            visual_brief: row.visual_brief,
+            slides_content: row.slides_content,
+            approval: 'pending',
+          })
+          .eq('id', id);
+        if (error) throw new Error(`Could not save the rewrite: ${error.message}`);
+        return model;
+      },
+      () => ({ post_id: id })
     );
-
-    const { error } = await admin
-      .from('posts')
-      .update({
-        title: row.title,
-        hook: row.hook,
-        copy: row.copy,
-        caption: row.caption,
-        hashtags: row.hashtags,
-        platform_captions: row.platform_captions,
-        visual_brief: row.visual_brief,
-        slides_content: row.slides_content,
-        approval: 'pending',
-      })
-      .eq('id', id);
-    if (error) throw new Error(error.message);
 
     revalidatePath(`/console/posts/${id}`);
     return { ok: true, message: `Rewritten with ${model.label}.` };

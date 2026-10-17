@@ -22,7 +22,7 @@ export default async function ConsoleCalendar({
   return (
     <Shell
       profile={profile}
-      nav={consoleNav('calendar')}
+      groups={consoleNav('calendar')}
     >
       <Calendar
         posts={(data ?? []) as PostRow[]}

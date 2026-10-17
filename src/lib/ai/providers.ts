@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import type * as z from 'zod/v4';
 import type { ResolvedAi } from './settings';
+import type { UsageListener } from './usage';
 
 export type Effort = 'low' | 'medium' | 'high';
 
@@ -19,7 +20,7 @@ export interface StructuredModel {
 
 const MAX_TOKENS = 32000;
 
-function anthropicModel(ai: ResolvedAi): StructuredModel {
+function anthropicModel(ai: ResolvedAi, onUsage?: UsageListener): StructuredModel {
   const client = new Anthropic({ apiKey: ai.apiKey });
 
   function wrap(e: unknown): never {
@@ -45,6 +46,14 @@ function anthropicModel(ai: ResolvedAi): StructuredModel {
           messages: [{ role: 'user', content: prompt }],
         });
         const message = await stream.finalMessage();
+        // report before any throw below: a cut-off response is still billed
+        onUsage?.({
+          model: ai.model,
+          inputTokens: message.usage.input_tokens,
+          outputTokens: message.usage.output_tokens,
+          cacheReadTokens: message.usage.cache_read_input_tokens ?? 0,
+          cacheWriteTokens: message.usage.cache_creation_input_tokens ?? 0,
+        });
         if (message.stop_reason === 'refusal') throw new AiError('The model declined this request. Rephrase the brief and try again.');
         if (message.stop_reason === 'max_tokens' || !message.parsed_output) {
           throw new AiError('The response was cut off. Try fewer posts per run.');
@@ -64,7 +73,7 @@ function anthropicModel(ai: ResolvedAi): StructuredModel {
   };
 }
 
-function openaiModel(ai: ResolvedAi): StructuredModel {
+function openaiModel(ai: ResolvedAi, onUsage?: UsageListener): StructuredModel {
   const client = new OpenAI({ apiKey: ai.apiKey, timeout: 280_000 });
   const reasoning = /^(gpt-5|gpt-6|o\d)/.test(ai.model);
 
@@ -89,6 +98,16 @@ function openaiModel(ai: ResolvedAi): StructuredModel {
           ...(reasoning ? { reasoning: { effort } } : {}),
           text: { format: zodTextFormat(schema, 'output') },
         });
+        if (res.usage) {
+          const cached = res.usage.input_tokens_details?.cached_tokens ?? 0;
+          onUsage?.({
+            model: ai.model,
+            inputTokens: res.usage.input_tokens - cached,
+            outputTokens: res.usage.output_tokens,
+            cacheReadTokens: cached,
+            cacheWriteTokens: 0,
+          });
+        }
         if (res.status === 'incomplete') throw new AiError('The response was cut off. Try fewer posts per run.');
         if (!res.output_parsed) throw new AiError('The model returned no usable output. Try again.');
         return res.output_parsed as z.infer<typeof schema>;
@@ -106,6 +125,7 @@ function openaiModel(ai: ResolvedAi): StructuredModel {
   };
 }
 
-export function modelFor(ai: ResolvedAi): StructuredModel {
-  return ai.provider === 'openai' ? openaiModel(ai) : anthropicModel(ai);
+/** `onUsage` is called once per completed API call (Observer), so a job can meter its spend. */
+export function modelFor(ai: ResolvedAi, onUsage?: UsageListener): StructuredModel {
+  return ai.provider === 'openai' ? openaiModel(ai, onUsage) : anthropicModel(ai, onUsage);
 }

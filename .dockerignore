@@ -1,0 +1,13 @@
+# Only the worker image is built from this repo; keep the context small and secret-free.
+**/node_modules
+.next
+.vercel
+.git
+coverage
+docs
+public
+supabase
+*.zip
+**/.env
+**/.env.*
+!**/.env.example

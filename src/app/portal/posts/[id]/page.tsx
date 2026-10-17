@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { portalNav } from '@/lib/nav';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -29,7 +30,7 @@ export default async function PortalPostPage({
   if (!post) notFound();
   const p = post as Post;
 
-  const { data: comments } = await supabase
+  const { data: comments, error: commentsError } = await supabase
     .from('post_comments')
     .select('*, profiles(email)')
     .eq('post_id', id)
@@ -40,10 +41,7 @@ export default async function PortalPostPage({
   return (
     <Shell
       profile={profile}
-      nav={[
-        { href: '/portal', label: 'Your posts' },
-        { href: '/portal/calendar', label: 'Calendar' },
-      ]}
+      nav={portalNav('posts')}
     >
       <Link href="/portal" className="mono text-muted hover:text-ink">
         ← back to posts
@@ -64,9 +62,10 @@ export default async function PortalPostPage({
         <div className="flex flex-col gap-4">
           <PostEditor post={p} />
           <Comments
-            postId={p.id}
+            targetId={p.id}
             userId={profile.id}
             comments={(comments ?? []) as PostComment[]}
+            loadError={commentsError?.message}
           />
         </div>
 

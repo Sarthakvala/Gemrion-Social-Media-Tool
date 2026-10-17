@@ -1,68 +1,76 @@
-# Session Handoff - 2026-09-26
+# Session Handoff - 2026-10-17
 
 ## What We Were Doing
-Refocusing AgencyFlow on its core goal: generate consistent, on-brand social posts for any
-brand (calendar, captions, hashtags, slides) that staff can download and post. Then added an
-in-app Settings page for Anthropic/OpenAI keys and AI brand-kit drafting. Now committing and
-deploying.
+Turning AgencyFlow into the agency's single platform for 1-5 brands (plan:
+`~/.claude/plans/c-users-sarthak-downloads-awesome-opus5-vast-hinton.md`). Phase 1
+(foundation) is built; the frontend now has a section for every phase; deploying.
 
 ## What Was Completed This Session
-- Brand kits: `brand_profiles`, `brand_examples` (supabase/002_brand_studio.sql, applied to prod).
-- Studio (`/console/studio`): "Plan a month" and "From a brief" modes; plan step then parallel
-  write batches of 3 (`src/lib/studio/generate.ts`).
-- Slide renderer `/api/render` (next/og, brand fonts from Google Fonts, 6 layouts).
-- Post page: preview, creative editor, per-platform captions, "Rewrite with AI", ZIP download,
-  "Save as brand example". Month ZIP with calendar.csv. Portal shows rendered slides.
-- Settings (`/console/settings`): Anthropic/OpenAI keys encrypted (AES-256-GCM, HKDF from the
-  service role key) in `ai_settings` (supabase/003_ai_settings.sql, applied). Provider layer in
-  `src/lib/ai/`.
-- "Draft brand kit with AI" (`src/lib/brand/`): SSRF-guarded website reader + market-brand method.
-- Prompts rebuilt from the installed `social`, `market-social`, `market-brand` skills.
-- Removed the old AI Gateway panel + `/api/ai/generate`, dropped the `ai` package.
-- Gemrion brand kit seeded in prod (6 examples).
-- Vitest: 87 unit tests passing. `npm run build` clean.
+- Share metadata: `src/lib/site.ts`, OG/Twitter tags, `/opengraph-image`, robots, sitemap;
+  proxy lets crawlers reach them. `npm run index:code` -> `docs/CODE_INDEX.md`.
+- Skills installed to `~/.claude/skills`: anatomy, brag, brag-slim, 54 content skills,
+  12 Remotion skills. The two "awesome" zips are link lists / prompt libraries, not skills.
+- Migrations applied to prod (each dry-run in a rolled-back transaction first):
+  004 jobs + assets + asset_comments + private `assets` bucket + `claim_job()`;
+  006 comment author FKs to profiles (fixed pre-existing bug: post notes never showed);
+  007 approval stamping fixes, one-child-per-version, cost numeric(12,6), `spend_by_brand()`.
+- Cost metering: providers emit usage -> `trackJob()` (`src/lib/jobs/track.ts`) records
+  Studio month/brief, rewrite, brand draft and playbook runs, DB writes inside the job.
+- Console: Assets, Jobs & spend, Playbooks (3 ported skills), Video & reels, Meta ads,
+  SEO/AEO/GEO, Reports; grouped sidebar shell (`src/components/Shell.tsx`, `src/lib/nav.ts`).
+- Portal: Files list + review (`src/app/portal/assets`).
+- Worker (`worker/`): Node 24 pull worker + Dockerfile + compose. Verified on prod natively
+  and as the Docker image `worker-worker` (claimed and finished ping jobs in ~2 s).
+- Independent code review: no critical/high; all 4 mediums and most lows fixed.
 
 ## Current State
 | Area | State |
 |---|---|
-| Deploy | Live on Vercel: `main` @ 3132aac (Production) for both Vercel projects wired to this repo (`gemrion-social-media-tool`, `agencyflow`) |
-| Build / tests | Clean build, 87/87 tests |
-| DB migrations | 002 + 003 applied to prod |
-| Logged-in UI | Not browser-verified by Claude (login is against prod Supabase) |
-| Live AI generation | Not run yet: no API key saved |
-| Lint | 1 pre-existing error in `src/lib/platforms.ts` (require import), not from this work |
+| Tests / build / lint | 146 tests pass, build clean, 1 pre-existing lint error (`src/lib/platforms.ts` require) |
+| DB | 004, 006, 007 applied to prod `seuwvwozweokefxshnso` |
+| Deploy | Pushed to `main` -> Vercel git integration (projects `gemrion-social-media-tool`, `agencyflow`, team gemrion1) |
+| Logged-in UI | Not browser-verified by Claude (prod login). Shell checked on a temporary preview page (desktop + 375px, no overflow); page queries probed read-only against prod |
+| AI keys | OpenAI key saved; no Anthropic key. Default model still `claude-opus-5` |
+| Worker | Image built locally; not left running. Needs `worker/.env` |
+| Test data | 2 worker_ping jobs + 2 "Worker check" assets under Gemrion |
 
 ## Next Steps (in order)
-1. Sign in, open Settings, save an AI key, press Test connection.
-2. Generate a Gemrion month in Studio; review output and tune prompts in `src/lib/studio/prompt.ts`.
-3. Clean up test data (two demo IG `social_accounts` rows, the test client user).
-4. Later: optional AI background images, auto-publish from Studio.
+1. Check the Vercel deploy status (command below), sign in, click through every console section.
+2. Create `worker/.env` from `worker/env.template`; `docker compose -f worker/docker-compose.yml up -d`.
+3. One live playbook run on Gemrion (costs cents) to confirm output + cost recording.
+4. Phase 2: `video_render` handler (Remotion) in the worker, reel script playbooks, templates.
+5. Merge the separate security-hardening session (migration 005) when it finishes.
 
 ## Key Files Changed
-- src/lib/studio/* - prompt, schema, normalize, export, zip, render slide, data, generate
-- src/lib/ai/* - crypto, settings, providers (Anthropic + OpenAI)
-- src/lib/brand/* - html parsing, safe site reader, brand draft schema/mapping
-- src/app/console/studio, settings, clients/[id]/brand - pages + server actions
-- src/app/api/render/route.tsx - slide PNGs
-- supabase/002_brand_studio.sql, 003_ai_settings.sql
+- `supabase/004_jobs_assets.sql`, `006_comment_profiles.sql`, `007_jobs_assets_hardening.sql`
+- `src/lib/ai/usage.ts`, `providers.ts` - pricing table + usage listener
+- `src/lib/jobs/*` - repo, trackJob, state rules, workerLastSeen
+- `src/lib/assets/*`, `src/app/console/assets/*`, `src/app/portal/assets/*`, `src/components/assets/*`
+- `src/lib/playbooks/*`, `src/app/console/playbooks/*`, `src/components/playbooks/*`
+- `src/app/console/{video,ads,seo,reports,jobs}/page.tsx`, `src/components/PhaseIntro.tsx`
+- `src/lib/reports/monthly.ts`
+- `worker/**`, `.dockerignore`
+- `src/components/Comments.tsx` - works for posts and assets, shows load errors
 
 ## Commands To Know
-- `npm run dev -- --port 3100` (launch config "agencyflow")
-- `npm test` (vitest), `npm run build`
-- Supabase connector `e9a36e62` reaches project `seuwvwozweokefxshnso` for SQL/migrations.
+- `npm run dev -- --port 3100`, `npm test`, `npm run build`, `npm run index:code`
+- `docker compose -f worker/docker-compose.yml up -d --build` / `logs -f` / `down`
+- Deploy status: `gh api repos/Sarthakvala/Gemrion-Social-Media-Tool/commits/<sha>/status`
 
 ## Decisions Made
-- Visuals = brand templates rendered on demand, not AI images; nothing stored.
-- Official vendor SDKs, not Vercel AI Gateway. Keys entered in-app, env vars are fallback only.
-- "Training" = brand kit + few-shot examples in a cached system prompt.
-- Generated posts are `draft` so the publish cron never picks them up.
+- AgencyFlow is the hub; integrate open source for commodity parts later (Postiz, n8n).
+- Worker runs locally in Docker, pull model; uses the service role key (owner's choice).
+- Meta ads first; ads are pushed PAUSED, a person switches on spend.
+- Skills run in the app as versioned playbooks on the brand system prompt.
+- Planned sections show real data and say what is missing; no mock numbers.
 
 ## Warnings / Gotchas
-- Deploys come from GitHub pushes to `main` (Vercel git integration). The local branch was
-  `master`; it is now renamed to `main` tracking `origin/main`. Always `git fetch` first: `main`
-  had an OAuth commit (fdf09bb) that was merged in during this deploy.
-- Vercel CLI and the Vercel connector are not authorised for team `gemrion1`; check deploy
-  status with `gh api repos/Sarthakvala/Gemrion-Social-Media-Tool/commits/<sha>/status`.
+- Deploys come from pushes to `main`. Always `git fetch` first.
+- Vercel connector is authorised for team "Sarthak Finanshels", not gemrion1; use `gh api` for status.
+- Never `git add -A`: `.claude/worktrees/` holds another session's worktree, and the
+  root has 4 large zip files that must not be committed.
+- `.env*` files are blocked by a permission deny rule; the worker template is `worker/env.template`.
+- `timeout` does not stop a native `node worker/src/main.ts` on Windows; stop it by PID.
 - Rotating the Supabase service role key makes saved AI keys unreadable; re-enter them.
 - Next 16: read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - next/og font subsets must include uppercase glyphs (kickers are CSS-uppercased).

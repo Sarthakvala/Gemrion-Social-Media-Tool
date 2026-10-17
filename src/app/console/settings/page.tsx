@@ -9,7 +9,7 @@ export default async function SettingsPage() {
   const view = await getAiSettingsView();
 
   return (
-    <Shell profile={profile} nav={consoleNav('settings')}>
+    <Shell profile={profile} groups={consoleNav('settings')}>
       <div className="max-w-[760px]">
         <h1 className="text-[22px] font-semibold tracking-tight">Settings</h1>
         <p className="text-muted mt-1 mb-5 text-[13.5px]">

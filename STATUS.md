@@ -2,10 +2,11 @@
 
 ## End goal
 
-A content studio where agency staff create consistent, on-brand social posts for
-any brand: train it once on a brand (voice, rules, look, example posts), generate
-a month of posts (calendar, captions, hashtags, slides), then download the
-finished assets and post them. Automated publishing comes after this core works.
+One internal platform where the agency runs every client brand (1-5 now) end to
+end: brand kit and memory, strategy, social content, carousels and slides, reels
+and video, Meta ads, SEO/AEO/GEO, client approvals, publishing, and monthly
+reporting, with every AI run tracked and costed. Updated 2026-10-17 from the
+original "on-brand social post studio" goal, which is now one part of it.
 
 ## Done
 
@@ -42,6 +43,46 @@ finished assets and post them. Automated publishing comes after this core works.
     pillar mix, promo spacing, 1-in-3 question posts, AI-tell avoidance.
   - Old AI Gateway panel and /api/ai/generate removed; `ai` package dropped.
   - 87 unit tests.
+- **Phase 1 foundation (2026-10-17)**:
+  - `004_jobs_assets.sql` applied (dry-run first): `jobs` (agency-only, every AI
+    and worker run with tokens + cost), `claim_job()` (SKIP LOCKED, stale requeue,
+    service_role only), versioned `assets` (clients may change only `approval`;
+    trigger stamps approver), `asset_comments`, private `assets` bucket (500 MB).
+  - Cost metering: providers report usage (Observer) -> `trackJob()` records
+    Studio month/brief, rewrite and brand-draft runs. Prices in `src/lib/ai/usage.ts`;
+    unknown models (all OpenAI) store tokens with a null cost.
+  - Console: Assets library (filters, direct-to-Storage upload, versions,
+    approval, notes) and Jobs page (spend this month, retry/cancel, worker test).
+  - Portal: Files list + review (approve / request changes, notes).
+  - `worker/`: Node 24 pull worker (claim, heartbeat, retry/permanent fail,
+    graceful stop), Dockerfile + compose (2 CPU, 4 GB). Verified end to end on prod
+    with a native run: ping job claimed, file uploaded, asset recorded, job succeeded.
+  - Playbook registry (`src/lib/playbooks/`): skills ported as versioned
+    prompts on top of the brand system prompt, run and costed as jobs
+    (`jobs.playbook = "<id>@v<n>"`, result kept in `jobs.output`). First three:
+    viral-hook-writer, carousel-builder, caption-and-hashtags. Console > Playbooks
+    (generated form, copy-ready result, recent runs).
+  - Code review follow-ups fixed: worker never requeues a job whose handler
+    finished; DB writes now inside tracked jobs (no false "succeeded"); stale
+    app jobs (>20 min running) swept to failed; notes load errors shown; upload
+    orphan cleanup + one-child-per-version; brand check on worker test.
+  - `006_comment_profiles.sql` applied: fixes pre-existing bug where post notes
+    never displayed (PostgREST PGRST200 on `profiles(email)`).
+  - Worker verified twice on prod: native run, then the Docker image
+    (`worker-worker`, 339 MB) claimed and finished a ping job in ~2 s.
+  - `007_jobs_assets_hardening.sql` applied (dry-run first).
+  - Frontend for every phase: console moved to a grouped sidebar (Create /
+    Publish / Grow / Library / Measure; phone menu). New sections: Video & reels
+    (pipeline + video files), Meta ads (connection per brand), SEO/AEO/GEO
+    (tracks + brands), Reports (live monthly table per brand). Planned sections
+    show real data and plainly say what is not built yet and what they need.
+  - Fixed "worker last seen" (worker clears locked_at on finish; now uses finish times).
+  - 146 unit tests, clean build and lint (1 pre-existing lint error in platforms.ts).
+- **Share metadata + code index (2026-10-17)**: `src/lib/site.ts` (name, copy,
+  URL resolution), full OG/Twitter tags in the root layout, generated 1200x630
+  `/opengraph-image`, `robots.txt` + `sitemap.xml` (only /login indexable;
+  console/portal noindex). Proxy now lets crawlers reach those routes.
+  `npm run index:code` regenerates `docs/CODE_INDEX.md` (every top-level symbol). 93 tests.
 - Earlier: Next.js 16 app, RLS schema, auth (magic link + password), console,
   client portal, OAuth + publish API + cron (kept, now secondary).
 
@@ -50,9 +91,27 @@ finished assets and post them. Automated publishing comes after this core works.
 1. **Add an AI key** in the app: Settings (Anthropic and/or OpenAI), then Test connection.
 2. **Test-data cleanup**: two demo IG `social_accounts` rows and the test
    client portal user still exist.
+3. **Create worker/.env** from `worker/env.template`, then
+   `docker compose -f worker/docker-compose.yml up -d` (image already built).
+
+## Agency OS plan (2026-10-17)
+
+Approved plan: `~/.claude/plans/c-users-sarthak-downloads-awesome-opus5-vast-hinton.md`. AgencyFlow becomes the
+single hub for ads, SEO/AEO/GEO, content, social, creatives, video for 1-5 brands (internal tool).
+Phases: Foundation (jobs + assets + approvals for any asset) -> Video/Reels -> Meta Ads -> SEO/AEO/GEO -> Reporting -> Automation.
+Render/agent worker runs locally in Docker and pulls jobs from Supabase (no inbound access needed).
+
+## In progress
+
+- Deployed via push to `main`; verify the console after signing in (Claude
+  cannot sign in to production).
+- One live playbook run on Gemrion (costs a few cents on the saved OpenAI key).
+- Security-hardening session (migration 005) running separately.
 
 ## Next
 
+- Phase 2 Video/Reels: Remotion render handler in the worker (`video_render`),
+  brand-templated compositions, reel pipeline, opus video prompt library as templates.
 - Run a real generation once a key is saved; tune prompts on the output.
 - Optional AI background images (OpenAI) behind a toggle.
 - Auto-publish from the studio once the core is proven.
@@ -69,3 +128,11 @@ finished assets and post them. Automated publishing comes after this core works.
 - "Training" = brand kit + few-shot examples in a cached system prompt, not fine-tuning.
 - Clients may edit `platform_captions` (column grant), like caption/copy/hashtags.
 - Service key server-side only, behind requireAgency().
+- Worker uses the service role key (owner's choice over a scoped worker token);
+  key lives only in git-ignored worker/.env, excluded from the Docker context.
+- Worker is pull-based (polls `claim_job`), so production never needs to reach this PC.
+- Asset files are private; viewers get 1-hour signed URLs after an access check.
+- Uploads go browser -> Storage via one-time signed upload URLs; size/type are
+  read back from Storage, not trusted from the browser.
+- Settings default model is still `claude-opus-5`; `claude-opus-5-5` is newer and
+  cheaper ($4/$20 vs $5/$25 per M tokens). Switch in Settings when convenient.

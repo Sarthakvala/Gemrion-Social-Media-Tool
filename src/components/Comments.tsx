@@ -3,16 +3,34 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { PostComment } from '@/lib/types';
+
+interface CommentRow {
+  id: string;
+  user_id: string | null;
+  body: string;
+  created_at: string;
+  profiles?: { email: string | null } | null;
+}
+
+/** Comment tables and their parent column. RLS on each table scopes who can read and write. */
+const TARGETS = {
+  post: { table: 'post_comments', column: 'post_id' },
+  asset: { table: 'asset_comments', column: 'asset_id' },
+} as const;
 
 export function Comments({
-  postId,
+  target = 'post',
+  targetId,
   userId,
   comments,
+  loadError,
 }: {
-  postId: string;
+  target?: keyof typeof TARGETS;
+  targetId: string;
   userId: string;
-  comments: (PostComment & { profiles?: { email: string | null } | null })[];
+  comments: CommentRow[];
+  /** Set when the notes query failed, so an error never looks like "no notes". */
+  loadError?: string;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -27,9 +45,8 @@ export function Comments({
     setErr('');
 
     const supabase = createClient();
-    const { error } = await supabase
-      .from('post_comments')
-      .insert({ post_id: postId, user_id: userId, body: text });
+    const { table, column } = TARGETS[target];
+    const { error } = await supabase.from(table).insert({ [column]: targetId, user_id: userId, body: text });
 
     setBusy(false);
     if (error) {
@@ -45,7 +62,8 @@ export function Comments({
       <span className="lbl">Notes</span>
 
       <div className="flex flex-col gap-2.5 mt-3">
-        {comments.length === 0 && (
+        {loadError && <p className="mono text-failed">Notes could not load: {loadError}</p>}
+        {!loadError && comments.length === 0 && (
           <p className="text-muted text-[13px]">
             No notes yet. Anything you write here goes to your agency.
           </p>

@@ -2,16 +2,17 @@ import 'server-only';
 import type { Platform } from '@/lib/types';
 import { resolveAi } from '@/lib/ai/settings';
 import { AiError, modelFor, type StructuredModel } from '@/lib/ai/providers';
+import type { UsageListener } from '@/lib/ai/usage';
 import { PlanSchema, PostBatchSchema, type PlanItem, type PostContent } from './schema';
 import { buildPlanRequest, buildRegenerateRequest, buildWriteRequest, type PlanRequest } from './prompt';
 import { clampDate } from './normalize';
 
 const WRITE_BATCH = 3;
 
-export async function activeModel(): Promise<StructuredModel> {
+export async function activeModel(onUsage?: UsageListener): Promise<StructuredModel> {
   const ai = await resolveAi();
   if (!ai) throw new AiError('No AI key yet. Add an Anthropic or OpenAI key in Settings.');
-  return modelFor(ai);
+  return modelFor(ai, onUsage);
 }
 
 export async function planPosts(model: StructuredModel, system: string, req: PlanRequest): Promise<PlanItem[]> {

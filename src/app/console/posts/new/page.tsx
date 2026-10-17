@@ -12,7 +12,7 @@ export default async function NewPostPage() {
   return (
     <Shell
       profile={profile}
-      nav={consoleNav('posts')}
+      groups={consoleNav('posts')}
     >
       <Link href="/console" className="mono text-muted hover:text-ink">
         ← back to posts

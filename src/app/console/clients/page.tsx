@@ -32,7 +32,7 @@ export default async function ClientsPage() {
   return (
     <Shell
       profile={profile}
-      nav={consoleNav('clients')}
+      groups={consoleNav('clients')}
     >
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>

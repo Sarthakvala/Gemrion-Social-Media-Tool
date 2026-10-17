@@ -41,7 +41,7 @@ export default async function ConsolePage({
   return (
     <Shell
       profile={profile}
-      nav={consoleNav('posts')}
+      groups={consoleNav('posts')}
     >
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>
