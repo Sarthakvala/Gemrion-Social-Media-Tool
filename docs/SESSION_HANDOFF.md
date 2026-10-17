@@ -28,14 +28,14 @@ Turning AgencyFlow into the agency's single platform for 1-5 brands (plan:
 |---|---|
 | Tests / build / lint | 146 tests pass, build clean, 1 pre-existing lint error (`src/lib/platforms.ts` require) |
 | DB | 004, 006, 007 applied to prod `seuwvwozweokefxshnso` |
-| Deploy | Pushed to `main` -> Vercel git integration (projects `gemrion-social-media-tool`, `agencyflow`, team gemrion1) |
+| Deploy | `b94e948` live: both Vercel projects (`gemrion-social-media-tool`, `agencyflow`, team gemrion1) report success. Prod URL https://gemrion-social-media-tool.vercel.app: robots, OG tags, share image OK; console/portal routes redirect to /login when signed out |
 | Logged-in UI | Not browser-verified by Claude (prod login). Shell checked on a temporary preview page (desktop + 375px, no overflow); page queries probed read-only against prod |
 | AI keys | OpenAI key saved; no Anthropic key. Default model still `claude-opus-5` |
 | Worker | Image built locally; not left running. Needs `worker/.env` |
 | Test data | 2 worker_ping jobs + 2 "Worker check" assets under Gemrion |
 
 ## Next Steps (in order)
-1. Check the Vercel deploy status (command below), sign in, click through every console section.
+1. Sign in on production and click through every console section (Claude cannot sign in).
 2. Create `worker/.env` from `worker/env.template`; `docker compose -f worker/docker-compose.yml up -d`.
 3. One live playbook run on Gemrion (costs cents) to confirm output + cost recording.
 4. Phase 2: `video_render` handler (Remotion) in the worker, reel script playbooks, templates.
@@ -67,6 +67,7 @@ Turning AgencyFlow into the agency's single platform for 1-5 brands (plan:
 ## Warnings / Gotchas
 - Deploys come from pushes to `main`. Always `git fetch` first.
 - Vercel connector is authorised for team "Sarthak Finanshels", not gemrion1; use `gh api` for status.
+- `agencyflow.vercel.app` belongs to someone else; the `agencyflow` Vercel project uses another domain.
 - Never `git add -A`: `.claude/worktrees/` holds another session's worktree, and the
   root has 4 large zip files that must not be committed.
 - `.env*` files are blocked by a permission deny rule; the worker template is `worker/env.template`.
