@@ -5,7 +5,7 @@ Current state and next steps live in [STATUS.md](STATUS.md).
 
 ## [Unreleased]
 
-### Added - Native scheduler, first slice (not deployed until migrations 009/010 are applied)
+### Added - Native scheduler, first slice (deployed 2026-11-13; migration 009 applied, 010 pending)
 
 - Publishing engine with per-network adapters ([ADR 0001](docs/decisions/0001-native-publishing-engine.md)).
 - Channels page per brand: connect Bluesky (app password), Mastodon (any server),
@@ -29,7 +29,7 @@ Current state and next steps live in [STATUS.md](STATUS.md).
 - Old "Manual publish" button and `/api/publish` route (read the retired `social_accounts`).
 
 
-### Added - Phase 2 Video & reels (built; not deployed until migration 008 is applied)
+### Added - Phase 2 Video & reels (deployed 2026-11-13; migration 008 applied)
 
 - Reel render contract shared by app and worker (`src/lib/video/spec.ts`, `timing.ts`).
 - `reel-scripter` playbook; script -> render spec conversion; blank template reels.

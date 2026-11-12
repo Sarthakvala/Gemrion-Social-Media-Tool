@@ -32,8 +32,8 @@ Render/agent worker runs locally in Docker and pulls jobs from Supabase (no inbo
 
 ## In progress
 
-- **Phase 2 Video & reels:** built and committed locally (`b3e5844`), not pushed.
-- **Module 1 native scheduler (2026-11-13), first slice built, not pushed:**
+- **Phase 2 Video & reels:** live (`b3e5844`, migration 008 applied 2026-11-13). Next: one real reel render on Gemrion.
+- **Module 1 native scheduler (2026-11-13), first slice live (`bf53c1c`, migration 009 applied):**
   - Design: [ADR 0001](docs/decisions/0001-native-publishing-engine.md). Feature
     inventory of the three apps: [docs/research](docs/research/2026-11-13-scheduler-feature-inventory.md).
   - Channels per brand (many per network, encrypted credentials), per-channel post
@@ -45,13 +45,14 @@ Render/agent worker runs locally in Docker and pulls jobs from Supabase (no inbo
     live limits, schedule at post time / next queue slot / now, status with links,
     cancel and retry. Old publish button and route removed.
   - Fixed: post date/time now saved and shown in the brand time zone (was server UTC).
-- **Blocked:** migrations 008, 009, 010 must be applied before pushing (the new
-  pages read those tables). Applying from Claude is blocked by the auto-mode check.
+- **Blocked on owner:** every-minute publishing (migration 010) needs CRON_SECRET set
+  on Vercel (both projects) and the Vault secrets + pg_cron SQL run in Supabase.
+  Claude's writes to the Vault were blocked by the auto-mode check. Until then
+  scheduled posts only go out via the daily Vercel cron.
 
 ## Next
 
-- Apply 008/009/010 (+ Vault secrets for 010), push, deploy, connect a Bluesky
-  channel and publish one post end to end.
+- After 010: connect a Bluesky channel and publish one post end to end.
 - Scheduler parity backlog (from the inventory): agent API + MCP server, OAuth
   adapters (Meta FB/IG/Threads, X, LinkedIn, TikTok, YouTube, Pinterest, Reddit,
   Google Business) once developer apps exist, signed webhooks, analytics snapshots,
