@@ -15,6 +15,7 @@ An internal agency platform for running several client brands end to end, built 
 - **Playbooks** - Your Claude Code skills ported into versioned prompts that run on a brand kit: reel hooks (viral-hook-writer), carousel builder, caption + hashtags. Results are copy-ready and kept per run.
 - **Jobs & spend** - Every AI run and worker task is a job with tokens and cost; this month's spend per brand; retry/cancel; worker test.
 - **Assets** - Private, versioned file library per brand (images, slides, videos, reels, documents) with direct-to-storage uploads up to 500 MB, approval and notes. Clients review them under **Files** in the portal.
+- **Channels and scheduler** - Per brand, any number of channels. Bluesky, Mastodon, Telegram and Discord connect without developer apps; OAuth networks switch on when their app credentials are set (see Channels page for the exact env vars). Posts fan out per channel with their own text, first comment, status and live link; schedule at a time, into the next queue slot, or now. Only client-approved posts publish.
 - **Reports** - This month per brand: posts, published, approvals, files, AI spend.
 - **Local worker** - A Node 24 Docker service on the agency machine that pulls long jobs (video renders in phase 2) from Supabase; nothing needs to reach the machine from outside. See `worker/README.md`.
 - **Agency Console** - Plan, schedule, and publish social media posts across Instagram, Facebook, X (Twitter), LinkedIn, and TikTok for multiple clients from one dashboard.
@@ -118,7 +119,8 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 
-# Vercel Cron (required for scheduled publishing)
+# Scheduled publishing: shared secret for /api/cron/publish. Supabase pg_cron calls it
+# every minute (supabase/010_publish_cron.sql, needs the same value in Supabase Vault).
 CRON_SECRET=your-random-secret
 
 # Platform OAuth (optional - demo mode without these)

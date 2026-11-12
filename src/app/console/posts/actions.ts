@@ -5,6 +5,18 @@ import { redirect } from 'next/navigation';
 import { requireAgency } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PLATFORMS, type Platform } from '@/lib/types';
+import { zonedTimeToUtc } from '@/lib/publishing/plan';
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME = /^\d{2}:\d{2}$/;
+
+/** The picked date and time are wall-clock time in the brand's zone, not the server's (UTC on Vercel). */
+function scheduledAt(date: string, time: string, timeZone: string): string | null {
+  if (!DATE.test(date) || !TIME.test(time)) return null;
+  const [y, m, d] = date.split('-').map(Number);
+  const [h, min] = time.split(':').map(Number);
+  return zonedTimeToUtc(y, m, d, h, min, timeZone).toISOString();
+}
 
 /**
  * Agency-side write. Uses the service-role client, which bypasses RLS, so
@@ -31,7 +43,7 @@ export async function savePost(formData: FormData) {
     link: String(formData.get('link') || ''),
     image_url: String(formData.get('image_url') || ''),
     platforms,
-    scheduled_at: date ? new Date(`${date}T${time}`).toISOString() : null,
+    scheduled_at: null as string | null,
     status: String(formData.get('status') || 'scheduled'),
     enabled: formData.get('enabled') === 'on',
   };
@@ -39,10 +51,16 @@ export async function savePost(formData: FormData) {
   if (!values.client_id) throw new Error('Pick a client.');
 
   const admin = createAdminClient();
+  const { data: kit } = await admin.from('brand_profiles').select('timezone').eq('client_id', values.client_id).maybeSingle();
+  values.scheduled_at = scheduledAt(date, time, (kit?.timezone as string) || 'UTC');
 
   if (id) {
     const { error } = await admin.from('posts').update(values).eq('id', id);
     if (error) throw new Error(error.message);
+    // channels already scheduled for this post follow the new time
+    if (values.scheduled_at) {
+      await admin.from('post_targets').update({ scheduled_at: values.scheduled_at }).eq('post_id', id).eq('status', 'scheduled');
+    }
   } else {
     const { data, error } = await admin
       .from('posts')

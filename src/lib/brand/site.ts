@@ -18,7 +18,8 @@ export interface SiteSnapshot {
 
 export class SiteError extends Error {}
 
-async function assertPublic(url: URL) {
+/** Throws unless every address the host resolves to is public (no private, loopback or link-local). */
+export async function assertPublic(url: URL) {
   if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new SiteError('Only http(s) websites can be read.');
   if (url.username || url.password) throw new SiteError('URLs with credentials are not allowed.');
   const addrs = await lookup(url.hostname, { all: true }).catch(() => []);

@@ -5,6 +5,30 @@ Current state and next steps live in [STATUS.md](STATUS.md).
 
 ## [Unreleased]
 
+### Added - Native scheduler, first slice (not deployed until migrations 009/010 are applied)
+
+- Publishing engine with per-network adapters ([ADR 0001](docs/decisions/0001-native-publishing-engine.md)).
+- Channels page per brand: connect Bluesky (app password), Mastodon (any server),
+  Telegram (bot) and Discord (webhook) without developer apps; many channels per network.
+- Post composer: channel picker, per-channel text and first comment, live length and
+  media checks, schedule at post time, next queue slot or now; per-channel status,
+  live links, cancel and retry.
+- Queue times, default signature and hashtag groups per brand.
+- `supabase/009_publishing.sql` (channels, post_targets, claim_due_targets, posting_slots,
+  hashtag_groups, signatures, mastodon_apps) and `010_publish_cron.sql` (every-minute
+  pg_cron trigger); dry-run of 009 passed.
+
+### Changed
+
+- Post date and time are interpreted and shown in the brand's time zone (previously
+  the server's UTC clock shifted them).
+- Channel credentials use their own encryption key domain.
+
+### Removed
+
+- Old "Manual publish" button and `/api/publish` route (read the retired `social_accounts`).
+
+
 ### Added - Phase 2 Video & reels (built; not deployed until migration 008 is applied)
 
 - Reel render contract shared by app and worker (`src/lib/video/spec.ts`, `timing.ts`).

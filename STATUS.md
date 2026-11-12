@@ -4,9 +4,10 @@
 
 One internal platform where the agency runs every client brand (1-5 now) end to
 end: brand kit and memory, strategy, social content, carousels and slides, reels
-and video, Meta ads, SEO/AEO/GEO, client approvals, publishing, and monthly
-reporting, with every AI run tracked and costed. Updated 2026-10-17 from the
-original "on-brand social post studio" goal, which is now one part of it.
+and video, a native scheduler with the feature set of Postiz/Mixpost/TryPost for
+staff and AI agents, Meta ads, a website builder with recurring SEO/AEO/GEO, client
+approvals and monthly reporting, with every AI run tracked and costed.
+(Updated 2026-11-13: scheduler parity and the website module added.)
 
 ## Done
 
@@ -31,25 +32,34 @@ Render/agent worker runs locally in Docker and pulls jobs from Supabase (no inbo
 
 ## In progress
 
-- **Phase 2 Video & reels (2026-10-18), built, not deployed yet:**
-  - Reel spec contract shared by app and worker (`src/lib/video/spec.ts`,
-    `timing.ts`); reel-scripter playbook; script -> spec conversion; editor
-    (beats, timing, format, live brand thumbnails); render queue button.
-  - Worker: `video_render` handler + Remotion composition (`worker/remotion/`),
-    brand fonts from Google Fonts, MP4 saved as a `reel` asset with size/duration.
-  - Verified: native render and Docker render of the sample reel (16 s, 1080x1920,
-    ~2.5 min on 2 cores, brand font loads in the container). Image now 1.48 GB.
-  - Committed locally, not pushed. Waiting on: migration `008_reels.sql` (dry-run
-    passed; applying it from Claude was blocked by the auto-mode safety check, so
-    the owner applies it or allows it), then push/deploy, then one live reel.
-- Security-hardening session (migration 005) running separately.
+- **Phase 2 Video & reels:** built and committed locally (`b3e5844`), not pushed.
+- **Module 1 native scheduler (2026-11-13), first slice built, not pushed:**
+  - Design: [ADR 0001](docs/decisions/0001-native-publishing-engine.md). Feature
+    inventory of the three apps: [docs/research](docs/research/2026-11-13-scheduler-feature-inventory.md).
+  - Channels per brand (many per network, encrypted credentials), per-channel post
+    targets, approval-gated claim, queue times, signatures, hashtag groups.
+  - Adapters that need no developer app: Bluesky, Mastodon (auto app registration +
+    OAuth), Telegram (bot), Discord (webhook). OAuth networks listed with the env
+    vars that will switch them on.
+  - Composer on the post page: channel picker, per-channel text and first comment,
+    live limits, schedule at post time / next queue slot / now, status with links,
+    cancel and retry. Old publish button and route removed.
+  - Fixed: post date/time now saved and shown in the brand time zone (was server UTC).
+- **Blocked:** migrations 008, 009, 010 must be applied before pushing (the new
+  pages read those tables). Applying from Claude is blocked by the auto-mode check.
 
 ## Next
 
-- Phase 2 close-out: apply 008, deploy, live reel test, worker running from `worker/.env`.
-- Video prompt library (`awesome-opus5-5-videos-main.zip`) as reel templates.
-- Phase 3: Meta ads (creatives, paused ads, insights sync).
-- Optional AI background images (OpenAI) behind a toggle.
+- Apply 008/009/010 (+ Vault secrets for 010), push, deploy, connect a Bluesky
+  channel and publish one post end to end.
+- Scheduler parity backlog (from the inventory): agent API + MCP server, OAuth
+  adapters (Meta FB/IG/Threads, X, LinkedIn, TikTok, YouTube, Pinterest, Reddit,
+  Google Business) once developer apps exist, signed webhooks, analytics snapshots,
+  public preview links, calendar drag-and-drop, RSS-to-ideas, ideas board,
+  templates, labels, evergreen recycling, UTM builder, comment inbox.
+- Module 2 Website Studio (Astro, awwwards principles, built-in SEO/AEO/GEO).
+- Module 3 monthly SEO/GEO/AEO service (geo-seo-claude scripts in the worker).
+- Phase 3 Meta ads.
 
 ## Decisions
 

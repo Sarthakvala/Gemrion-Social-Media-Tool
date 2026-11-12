@@ -46,3 +46,11 @@ describe('keyHint', () => {
     expect(keyHint('short')).toBe('••••');
   });
 });
+
+describe('key domains', () => {
+  test('cannot decrypt a value sealed for another domain', () => {
+    const sealed = encryptSecret('token', 'secret-xyz', 'agencyflow/channels/v1');
+    expect(decryptSecret(sealed, 'secret-xyz', 'agencyflow/channels/v1')).toBe('token');
+    expect(() => decryptSecret(sealed, 'secret-xyz')).toThrow();
+  });
+});

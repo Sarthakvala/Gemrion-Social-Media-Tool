@@ -1,18 +1,22 @@
 import Link from 'next/link';
 import { savePost, deletePost } from '@/app/console/posts/actions';
 import { PLATFORMS, PLATFORM_NAMES, type Post, type Client } from '@/lib/types';
+import { zonedInputValues } from '@/lib/publishing/plan';
 
 /** Full agency editor. Plain form + server action, so it works without client JS. */
 export function PostForm({
   post,
   clients,
+  timeZone = 'UTC',
 }: {
   post: Partial<Post> | null;
   clients: Client[];
+  /** The brand's time zone; date and time are shown and saved as its wall clock. */
+  timeZone?: string;
 }) {
-  const scheduled = post?.scheduled_at ? new Date(post.scheduled_at) : null;
-  const date = scheduled ? scheduled.toISOString().slice(0, 10) : '';
-  const time = scheduled ? scheduled.toISOString().slice(11, 16) : '10:00';
+  const shown = post?.scheduled_at ? zonedInputValues(new Date(post.scheduled_at), timeZone) : null;
+  const date = shown?.date ?? '';
+  const time = shown?.time ?? '10:00';
   const platforms = post?.platforms ?? ['IG', 'LI'];
 
   return (

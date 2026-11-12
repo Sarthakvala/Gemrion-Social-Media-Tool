@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/Shell';
 import { consoleNav } from '@/lib/nav';
 import { PostForm } from '@/components/PostForm';
-import { PublishButton } from '@/components/PublishButton';
+import { PublishingPanel } from '@/components/publishing/PublishingPanel';
 import { StatusPill } from '@/components/ui';
 import { SlidePreview } from '@/components/studio/SlidePreview';
 import { CreativeEditor } from '@/components/studio/CreativeEditor';
@@ -34,6 +34,9 @@ export default async function EditPostPage({
 
   if (!post) notFound();
   const p = post as Post;
+
+  const { data: kit } = await supabase.from('brand_profiles').select('timezone').eq('client_id', p.client_id).maybeSingle();
+  const timeZone = (kit?.timezone as string) || 'UTC';
 
   const { data: comments } = await supabase
     .from('post_comments')
@@ -98,18 +101,10 @@ export default async function EditPostPage({
 
       <div className="grid lg:grid-cols-2 gap-4 items-start mb-4">
         <CreativeEditor key={p.updated_at} post={p} />
-        <PostForm post={p} clients={clients} />
+        <PostForm post={p} clients={clients} timeZone={timeZone} />
       </div>
 
-      {p.status !== 'published' && p.enabled && (
-        <div className="panel p-4 mt-4">
-          <span className="lbl">Manual publish</span>
-          <p className="text-[13.5px] text-ink-2 mt-1.5 mb-2.5">
-            Publish this post to all selected platforms right now.
-          </p>
-          <PublishButton postId={p.id} />
-        </div>
-      )}
+      <PublishingPanel post={p} />
 
       {notes.length > 0 && (
         <div className="panel p-4 mt-5">

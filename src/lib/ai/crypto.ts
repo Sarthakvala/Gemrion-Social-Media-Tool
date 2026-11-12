@@ -2,25 +2,26 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:cr
 
 const INFO = 'agencyflow/ai-settings/v1';
 
-function key(secret: string): Buffer {
+/** `info` separates key domains (AI keys, channel credentials) derived from the same secret. */
+function key(secret: string, info: string): Buffer {
   if (!secret) throw new Error('Encryption secret is missing.');
-  return Buffer.from(hkdfSync('sha256', secret, 'agencyflow', INFO, 32));
+  return Buffer.from(hkdfSync('sha256', secret, 'agencyflow', info, 32));
 }
 
 /** AES-256-GCM. Output: "v1.<iv>.<tag>.<ciphertext>" (base64url parts). */
-export function encryptSecret(plain: string, secret: string): string {
+export function encryptSecret(plain: string, secret: string, info: string = INFO): string {
   const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', key(secret), iv);
+  const cipher = createCipheriv('aes-256-gcm', key(secret, info), iv);
   const body = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
   return ['v1', iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), body.toString('base64url')].join('.');
 }
 
 /** Returns '' for empty input; throws if the value was tampered with or the secret changed. */
-export function decryptSecret(sealed: string, secret: string): string {
+export function decryptSecret(sealed: string, secret: string, info: string = INFO): string {
   if (!sealed) return '';
   const [v, iv, tag, body] = sealed.split('.');
   if (v !== 'v1' || !iv || !tag || body === undefined) throw new Error('Unrecognised encrypted value.');
-  const decipher = createDecipheriv('aes-256-gcm', key(secret), Buffer.from(iv, 'base64url'));
+  const decipher = createDecipheriv('aes-256-gcm', key(secret, info), Buffer.from(iv, 'base64url'));
   decipher.setAuthTag(Buffer.from(tag, 'base64url'));
   return Buffer.concat([decipher.update(Buffer.from(body, 'base64url')), decipher.final()]).toString('utf8');
 }

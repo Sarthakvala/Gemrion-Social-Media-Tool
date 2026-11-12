@@ -1,9 +1,7 @@
-import { ImageResponse } from 'next/og';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { loadBrand } from '@/lib/studio/data';
-import { brandFonts } from '@/lib/studio/fonts';
-import { SlideImage, slideText, type SlideBrand } from '@/lib/studio/slide';
+import { slideResponse } from '@/lib/studio/renderSlide';
 import { ASPECT_SIZE, type Aspect, type Slide } from '@/lib/studio/types';
 import { slugify } from '@/lib/studio/export';
 
@@ -58,22 +56,9 @@ export async function GET(request: Request) {
   const brand = await loadBrand(supabase, clientId);
   if (!brand) return NextResponse.json({ error: 'Brand not found.' }, { status: 404 });
 
-  const slideBrand: SlideBrand = {
-    name: brand.name,
-    handle: brand.profile.handle,
-    logoUrl: brand.profile.logo_url,
-    palette: brand.profile.palette,
-  };
-  const size = ASPECT_SIZE[aspect];
-  const fonts = await brandFonts(brand.profile.heading_font, brand.profile.body_font, slideText(slide, slideBrand));
-
   const headers: Record<string, string> = { 'Cache-Control': 'private, max-age=30' };
   if (url.searchParams.get('download')) {
     headers['Content-Disposition'] = `attachment; filename="${slugify(title)}-${index + 1}.png"`;
   }
-
-  return new ImageResponse(
-    <SlideImage slide={slide} brand={slideBrand} frame={{ ...size, index, total: slides.length }} />,
-    { ...size, fonts, headers }
-  );
+  return slideResponse(brand, slides, index, aspect, headers);
 }

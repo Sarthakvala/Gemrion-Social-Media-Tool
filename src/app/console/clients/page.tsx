@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { Shell } from '@/components/Shell';
 import { consoleNav } from '@/lib/nav';
 import { EmptyState } from '@/components/ui';
-import { PLATFORMS, PLATFORM_NAMES, type Client } from '@/lib/types';
+import type { Client } from '@/lib/types';
 import {
   createClientAction,
   inviteUserAction,
@@ -16,13 +16,18 @@ export default async function ClientsPage() {
   const profile = await requireAgency();
 
   const admin = createAdminClient();
-  const [{ data: clients }, { data: accounts }, { data: access }, { data: counts }] =
+  const [{ data: clients }, { data: channelRows }, { data: access }, { data: counts }] =
     await Promise.all([
       admin.from('clients').select('id, name, color, created_at').order('name'),
-      admin.from('social_accounts').select('id, client_id, platform, connected, handle, is_real'),
+      admin.from('channels').select('client_id').neq('status', 'disabled'),
       admin.from('client_users').select('user_id, client_id, profiles(id, email)'),
       admin.from('posts').select('client_id'),
     ]);
+
+  const channelCounts = new Map<string, number>();
+  for (const row of channelRows ?? []) {
+    channelCounts.set(row.client_id, (channelCounts.get(row.client_id) ?? 0) + 1);
+  }
 
   const postCount = new Map<string, number>();
   for (const row of counts ?? []) {
@@ -38,7 +43,7 @@ export default async function ClientsPage() {
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight">Brands</h1>
           <p className="text-muted text-[13.5px] mt-1">
-            Each brand has its own kit (voice, pillars, look), portal users and connected accounts.
+            Each brand has its own kit (voice, pillars, look), portal users and publishing channels.
           </p>
         </div>
       </div>
@@ -73,9 +78,6 @@ export default async function ClientsPage() {
       ) : (
         <div className="flex flex-col gap-4">
           {(clients as Client[]).map((c) => {
-            const accts = (accounts ?? []).filter(
-              (a) => a.client_id === c.id
-            );
             const users = (access ?? []).filter(
               (a) => a.client_id === c.id
             );
@@ -100,41 +102,17 @@ export default async function ClientsPage() {
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4 mt-3.5">
-                  {/* Connected accounts */}
+                  {/* Channels (publishing destinations) */}
                   <div>
-                    <span className="lbl">Connected accounts</span>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {PLATFORMS.map((pl) => {
-                        const a = accts.find((x) => x.platform === pl);
-                        const on = a?.connected;
-                        return (
-                          <a
-                            key={pl}
-                            href={`/api/oauth/${pl}/start?client_id=${c.id}`}
-                            title={
-                              on
-                                ? `${PLATFORM_NAMES[pl]}: ${a?.handle || 'connected'}`
-                                : `Connect ${PLATFORM_NAMES[pl]}`
-                            }
-                            className={`pill cursor-pointer hover:opacity-80 transition ${
-                              on
-                                ? a?.is_real
-                                  ? 'pill-published'
-                                  : 'pill-scheduled'
-                                : 'pill-draft'
-                            }`}
-                          >
-                            {pl}{' '}
-                            {on ? (a?.is_real ? 'live' : 'demo') : 'connect'}
-                          </a>
-                        );
-                      })}
+                    <span className="lbl">Channels</span>
+                    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                      <span className="mono text-faint">
+                        {channelCounts.get(c.id) ?? 0} connected
+                      </span>
+                      <Link href={`/console/clients/${c.id}/channels`} className="btn btn-ghost btn-sm">
+                        Manage channels
+                      </Link>
                     </div>
-                    {accts.some((a) => a.connected && !a.is_real) && (
-                      <p className="mono text-faint mt-1.5">
-                        Demo connections simulate publishing. Set platform credentials in env to go live.
-                      </p>
-                    )}
                   </div>
 
                   {/* Portal access */}
