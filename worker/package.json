@@ -1,16 +1,31 @@
 {
   "name": "agencyflow-worker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Local job worker: claims jobs from Supabase, renders, uploads assets.",
+  "description": "Local job worker: claims jobs from Supabase, renders reels with Remotion, uploads assets.",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "start": "node src/main.ts"
+    "start": "node src/main.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "render:sample": "node src/sampleRender.ts",
+    "studio": "remotion studio remotion/index.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.115.0"
+    "@remotion/bundler": "4.0.536",
+    "@remotion/cli": "4.0.536",
+    "@remotion/renderer": "4.0.536",
+    "@supabase/supabase-js": "2.115.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.536",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.0",
+    "@types/react": "19.2.18",
+    "typescript": "5.9.3"
   }
 }

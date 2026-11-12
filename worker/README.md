@@ -1,7 +1,8 @@
 # AgencyFlow worker
 
-Runs long jobs (video renders now, more later) on this machine instead of on
-Vercel, where functions time out.
+Runs long jobs on this machine instead of on Vercel, where functions time out.
+Today: `video_render` (brand-templated reels with Remotion) and `worker_ping`
+(connectivity check).
 
 ## How it works
 
@@ -18,6 +19,24 @@ to reach this PC.
    `public.assets`, so they show up under Console > Assets for approval.
 
 When the PC is off, jobs just wait as `queued`.
+
+## Reel rendering
+
+- Composition: `worker/remotion/` (`Reel.tsx`). One `Reel` composition renders
+  every reel; size and length come from the spec (`calculateMetadata`).
+- The render contract is `src/lib/video/spec.ts` (shared with the web app). The
+  app copies the spec into the job, so editing a reel never changes a render
+  that is already running.
+- Brand fonts load from Google Fonts at render time; a font that fails to load
+  falls back to a system font instead of failing the render.
+- The MP4 is stored as a `reel` asset (with width, height and duration) under the
+  brand, ready for client approval.
+- Smoke test without Supabase: `npm run render:sample` inside `worker/`
+  (writes `worker/out/sample.mp4`). A 16-second 1080x1920 sample takes about
+  2 minutes on 2 cores.
+- Studio preview for designing the template: `npm run studio` inside `worker/`.
+- Licence: Remotion is free for individuals and companies of up to 3 people;
+  a bigger agency needs a Remotion company licence (remotion.pro).
 
 ## Run it
 
@@ -42,7 +61,8 @@ Without Docker (development), from the repo root with the same variables set:
 node worker/src/main.ts
 ```
 
-The container is limited to 2 CPUs and 4 GB RAM (`docker-compose.yml`). Stop it
+The container is limited to 2 CPUs, 4 GB RAM and 1 GB shared memory for Chrome
+(`docker-compose.yml`). The image is about 1.5 GB because it includes Chrome. Stop it
 with `docker compose -f worker/docker-compose.yml down`; a running job finishes
 first (2-minute grace period).
 

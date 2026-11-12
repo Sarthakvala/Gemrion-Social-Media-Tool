@@ -4,6 +4,8 @@
 .vercel
 .git
 coverage
+worker/out
+worker/out-docker
 docs
 public
 supabase

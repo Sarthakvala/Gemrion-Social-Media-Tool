@@ -31,7 +31,7 @@ const GROUPS: { title: string; entries: Entry[] }[] = [
     entries: [
       { section: 'studio', href: '/console/studio', label: 'Studio' },
       { section: 'playbooks', href: '/console/playbooks', label: 'Playbooks' },
-      { section: 'video', href: '/console/video', label: 'Video & reels', badge: 'phase 2' },
+      { section: 'video', href: '/console/video', label: 'Video & reels' },
     ],
   },
   {

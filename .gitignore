@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/worker/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -42,3 +43,6 @@ next-env.d.ts
 
 # keep the template tracked
 !.env.example
+
+/worker/out
+/worker/out-docker

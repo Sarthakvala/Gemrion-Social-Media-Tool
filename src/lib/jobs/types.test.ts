@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canCancel, canRetry, durationMs, isFinished, workerLastSeen } from './types';
+import { canCancel, canRetry, durationMs, isFinished, isInFlight, workerLastSeen } from './types';
 
 describe('job state rules', () => {
   it('treats succeeded, failed and canceled as finished', () => {
@@ -47,5 +47,14 @@ describe('workerLastSeen', () => {
         { ...base, attempts: 0, status: 'canceled', finished_at: '2026-10-17T10:00:00Z' },
       ])
     ).toBeNull();
+  });
+});
+
+describe('isInFlight', () => {
+  it('is true only while queued or running', () => {
+    expect(isInFlight({ status: 'queued' })).toBe(true);
+    expect(isInFlight({ status: 'running' })).toBe(true);
+    expect(isInFlight({ status: 'failed' })).toBe(false);
+    expect(isInFlight(null)).toBe(false);
   });
 });

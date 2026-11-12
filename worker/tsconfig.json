@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "remotion/**/*.ts", "remotion/**/*.tsx", "../src/lib/video/spec.ts", "../src/lib/video/timing.ts", "../src/lib/assets/paths.ts"],
+  "exclude": ["node_modules", "out", "**/*.test.ts"]
+}

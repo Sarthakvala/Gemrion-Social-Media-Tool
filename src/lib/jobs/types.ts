@@ -41,6 +41,11 @@ export function canRetry(job: JobState): boolean {
   return job.runner === 'worker' && (job.status === 'failed' || job.status === 'canceled');
 }
 
+/** Waiting for or held by a runner: a second copy of the same work must not start. */
+export function isInFlight(job: Pick<Job, 'status'> | null | undefined): boolean {
+  return job?.status === 'queued' || job?.status === 'running';
+}
+
 /** Only jobs nobody has picked up yet can be canceled safely. */
 export function canCancel(job: JobState): boolean {
   return job.status === 'queued';

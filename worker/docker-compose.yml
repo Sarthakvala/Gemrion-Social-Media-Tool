@@ -14,6 +14,7 @@ services:
     # 2 of 8 cores = the 25% CPU budget for background work on this machine
     cpus: 2
     mem_limit: 4g
+    shm_size: 1gb # Chrome renders in shared memory; Docker's 64 MB default crashes tabs
     logging:
       driver: json-file
       options:

@@ -17,6 +17,9 @@ export interface NewAsset {
   contentType: string;
   kind: string;
   title: string;
+  width?: number;
+  height?: number;
+  durationMs?: number;
   meta?: Record<string, unknown>;
 }
 

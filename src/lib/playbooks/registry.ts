@@ -1,10 +1,11 @@
 import { captionsPlaybook } from './captions';
 import { carouselPlaybook } from './carousel';
 import { hooksPlaybook } from './hooks';
+import { reelScriptPlaybook } from './reelScript';
 import type { Playbook } from './types';
 
 /** Every playbook the app can run. Add new ported skills here. */
-export const PLAYBOOKS: readonly Playbook[] = [hooksPlaybook, carouselPlaybook, captionsPlaybook] as readonly Playbook[];
+export const PLAYBOOKS: readonly Playbook[] = [hooksPlaybook, reelScriptPlaybook, carouselPlaybook, captionsPlaybook] as readonly Playbook[];
 
 export function getPlaybook(id: string): Playbook | undefined {
   return PLAYBOOKS.find((p) => p.id === id);

@@ -7,6 +7,8 @@ export interface WorkerConfig {
   kinds: string[];
   pollMs: number;
   heartbeatMs: number;
+  /** Browser tabs per render; keep at or below the container's CPU share. */
+  renderConcurrency: number;
 }
 
 const DEFAULT_KINDS = ['worker_ping', 'video_render'];
@@ -31,5 +33,6 @@ export function loadConfig(env: Record<string, string | undefined>): WorkerConfi
     kinds: env.WORKER_KINDS?.split(',').map((k) => k.trim()).filter(Boolean) || DEFAULT_KINDS,
     pollMs: int(env.POLL_MS, 5000, 1000),
     heartbeatMs: int(env.HEARTBEAT_MS, 60_000, 5000),
+    renderConcurrency: Math.min(8, int(env.RENDER_CONCURRENCY, 2, 1)),
   };
 }
